@@ -1,0 +1,41 @@
+name: consola_tesoro
+description: App móvil gamificada de búsqueda del tesoro basada en geolocalización.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Backend
+  supabase_flutter: ^2.5.0
+
+  # Mapas
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+
+  # Geolocalización
+  geolocator: ^11.0.0
+
+  # UI / UX
+  google_fonts: ^6.2.1          # Fuente Poppins
+  flutter_animate: ^4.5.0       # Microinteracciones y transiciones
+  confetti: ^0.7.0              # Animación de confeti en victoria
+  image_picker: ^1.1.2          # Cámara / galería para foto de prueba
+  # mobile_scanner: ^5.1.0      # QR: solo móvil, habilitar cuando se implemente VictoryScreen
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/env.json
+
+  # Fuentes gestionadas por google_fonts en runtime (no se necesitan archivos locales)

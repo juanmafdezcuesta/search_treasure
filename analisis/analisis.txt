@@ -1,0 +1,76 @@
+Análisis Funcional v3.0: App de Búsqueda del Tesoro (Open Source & Diseño UI/UX)
+1. Descripción del Sistema
+Aplicación móvil gamificada basada en geolocalización. Los usuarios resuelven acertijos para encontrar ubicaciones físicas secretas (patrocinadas por negocios locales o creadas por administradores). El primero en validar su posición mediante GPS gana una recompensa.
+
+2. Stack Tecnológico (Costo Operativo Cero)
+Frontend: Flutter (iOS y Android).
+
+Mapas: OpenStreetMap (OSM) a través de flutter_map.
+
+Backend y BBDD: Supabase con PostgreSQL y PostGIS (para cálculos geográficos seguros).
+
+3. Diseño y Experiencia de Usuario (UI/UX)
+El núcleo visual de la app debe transmitir aventura, pero mantenerse limpio para que cualquier persona (independientemente de su edad o habilidad tecnológica) pueda jugar al instante.
+
+Paleta de Colores Modernos:
+
+Fondo Principal: Tema oscuro por defecto (Ej: Azul Noche o Gris Antracita). Ahorra batería (crucial para apps con GPS) y hace que el mapa resalte.
+
+Colores de Acento (Botones y llamadas a la acción): Tonos vibrantes y neón. Verde Menta o Cian para avanzar/acertar, y Naranja Coral o Dorado para destacar el tesoro y las alertas.
+
+Interfaz Fácil y Amigable:
+
+Minimalismo: La pantalla principal debe ser un 80% mapa y un 20% interfaz (un botón grande de "Escanear zona" y un menú inferior simple).
+
+Microinteracciones: Animaciones suaves al resolver una pista (ej. confeti sutil o un sonido gratificante) para reforzar el sentimiento de logro.
+
+Accesibilidad (Diseño Inclusivo):
+
+Fuentes Legibles: Uso de tipografías sin remates (Sans-serif) grandes y claras (como Inter o Poppins).
+
+Alto Contraste: Asegurar que el texto blanco sobre fondos oscuros se lea perfectamente bajo la luz del sol (ya que se jugará en la calle).
+
+Botones Grandes: Áreas táctiles amplias (mínimo 48x48 píxeles) para que se puedan pulsar fácilmente mientras se camina.
+
+Soporte para Lectores de Pantalla: Etiquetas claras en todos los botones e imágenes para que las herramientas de accesibilidad de iOS y Android puedan leerlas en voz alta.
+
+4. Perfiles de Usuario
+Cazatesoros (Jugador): Explora el mapa y busca el tesoro.
+
+Master (Administrador): Creador de eventos y pistas.
+
+5. Funcionalidades Core de la App Móvil
+A. Registro y Perfil (Onboarding)
+Flujo amigable: Pantallas de bienvenida (tutorial rápido de 3 pasos con ilustraciones modernas) antes de pedir el registro.
+
+Login sin fricción: Correo y contraseña (Supabase).
+
+Términos y Condiciones: Checkbox claro sobre la exención de responsabilidad civil.
+
+Dashboard del Jugador: Diseño tipo "Carnet de Aventurero" con su avatar, historial y monedero de premios.
+
+B. El Mapa de Juego
+Estilo de Mapa Personalizado: El mapa de OpenStreetMap se estilizará con colores oscuros para que coincida con la paleta moderna de la app.
+
+Zonas de Búsqueda: Círculos translúcidos (color Coral/Dorado) que indican el área general del tesoro, sin dar el punto exacto.
+
+Botón Flotante (FAB): Un botón principal, grande y accesible en la parte inferior para "Comprobar Ubicación" o "Leer Pista".
+
+C. Mecánica de Búsqueda y Pistas
+Tarjetas de Pista: Las pistas aparecen en tarjetas flotantes (Bottom Sheets) con bordes redondeados, texto grande y opciones claras ("Cerrar" o "Resolver").
+
+Check-in Geográfico Seguro: Al pulsar "¡Estoy aquí!", el móvil envía las coordenadas a Supabase. PostGIS calcula si la distancia al tesoro es menor a X metros.
+
+Feedback Visual: Si el usuario falla, la pantalla vibra ligeramente y muestra un mensaje amigable en rojo/naranja ("Aún estás lejos, ¡sigue buscando!"). Si acierta, transición en verde brillante a la siguiente pista.
+
+D. Reclamación del Premio Final
+Cámara QR o Validación GPS Estricta: Interfaz limpia para escanear un código en el negocio local patrocinador, o validación de proximidad a menos de 5 metros.
+
+Pantalla de Victoria: Al ganar, la app muestra un gran banner de celebración y bloquea el evento para el resto de usuarios, enviándoles una notificación amistosa ("¡[Usuario] encontró el tesoro! Atento al próximo").
+
+6. Seguridad y Escalabilidad
+Validación de victoria calculada exclusivamente en el servidor (Supabase), nunca en el móvil.
+
+Limitación de "Check-ins" (ej. 1 cada 30 segundos) para evitar spam a la base de datos.
+
+Detección de Mock Location (GPS falso) con mensajes de advertencia claros al usuario.
