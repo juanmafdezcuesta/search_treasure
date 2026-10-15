@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' show pi, sin;
 
 import 'package:confetti/confetti.dart';
@@ -12,22 +13,15 @@ import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:consola_tesoro/core/theme/app_theme.dart';
-import 'package:consola_tesoro/core/session/app_session.dart';
 import 'package:consola_tesoro/data/datasources/supabase/hunt_datasource.dart';
 import 'package:consola_tesoro/features/admin/presentation/pages/admin_screen.dart';
-import 'package:consola_tesoro/features/ranking/presentation/pages/ranking_screen.dart';
-import 'package:consola_tesoro/features/profile/presentation/pages/profile_screen.dart';
 import '../widgets/clue_bottom_panel.dart';
 
 class MapScreen extends StatefulWidget {
-  final String? huntId;
-  final String? huntTitle;
-
-  const MapScreen({
-    super.key,
-    this.huntId,
-    this.huntTitle,
-  });
+  final String  huntId;
+  final String  huntTitle;
+  final String? region;
+  const MapScreen({super.key, required this.huntId, required this.huntTitle, this.region});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -46,13 +40,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   String?     _userId;
   bool        _dataLoading = true;
   String?     _dataError;
-  bool        _needsJoin = false;
-  String?     _joinError;
-  bool        _victory = false;
-
-  RealtimeChannel? _progressChannel;
-  String? _subUserId;
-  String? _subHuntId;
 
   // ── Estado del jugador ────────────────────────────────────────────────────
   LatLng? _playerPosition;
@@ -61,20 +48,57 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // ── Estado del panel de acción ────────────────────────────────────────────
   ClueActionState _actionState = ClueActionState.idle;
 
+  // ── Progreso y distancia ──────────────────────────────────────────────────
+  int  _totalSteps    = 1;
+  int? _distanceMeters;
+
+  // ── Polling post-foto ─────────────────────────────────────────────────────
+  Timer? _pollTimer;
+
+  // ── Rate limiting check-in ────────────────────────────────────────────────
+  DateTime? _lastCheckInAttempt;
+  static const _checkInCooldown = Duration(seconds: 30);
+
+  // ── Estado: otro jugador ya ganó ─────────────────────────────────────────
+  bool _huntWonByOtherShown = false;
+
   // ── Animaciones ───────────────────────────────────────────────────────────
   late final AnimationController _shakeController;
   late final Animation<double>   _shakeAnimation;
   late final ConfettiController  _confettiController;
 
-  // Madrid como fallback hasta obtener GPS
-  static const LatLng _defaultCenter = LatLng(40.4168, -3.7038);
   static const String _tileUrl =
-      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  // Centro inicial basado en la región del hunt (fallback: centro de España)
+  late final LatLng _mapInitialCenter;
+
+  static const Map<String, LatLng> _regionCenters = {
+    'Andalucía':           LatLng(37.5443, -4.7278),
+    'Aragón':              LatLng(41.5976, -0.9057),
+    'Asturias':            LatLng(43.3614, -5.8593),
+    'Illes Balears':       LatLng(39.5696,  2.6502),
+    'Canarias':            LatLng(28.2916, -16.6291),
+    'Cantabria':           LatLng(43.1828, -3.9878),
+    'Castilla-La Mancha':  LatLng(39.8628, -4.0273),
+    'Castilla y León':     LatLng(41.6539, -4.7246),
+    'Cataluña':            LatLng(41.5912,  1.5209),
+    'C. Valenciana':       LatLng(39.4840, -0.7533),
+    'Extremadura':         LatLng(39.4952, -6.0679),
+    'Galicia':             LatLng(42.5751, -8.1339),
+    'La Rioja':            LatLng(42.2871, -2.5396),
+    'Comunidad de Madrid': LatLng(40.4168, -3.7038),
+    'Región de Murcia':    LatLng(37.9922, -1.1307),
+    'Navarra':             LatLng(42.6953, -1.6761),
+    'País Vasco':          LatLng(43.2630, -2.9349),
+  };
 
   @override
   void initState() {
     super.initState();
     _huntDS = HuntDatasource(_supabase);
+
+    _mapInitialCenter = _regionCenters[widget.region] ?? const LatLng(40.4168, -3.7038);
 
     _shakeController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
@@ -90,37 +114,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _progressChannel?.unsubscribe();
+    _stopPolling();
     _shakeController.dispose();
     _confettiController.dispose();
     super.dispose();
-  }
-
-  void _ensureProgressSubscription({required String userId, required String huntId}) {
-    if (_subUserId == userId && _subHuntId == huntId && _progressChannel != null) return;
-
-    _progressChannel?.unsubscribe();
-    _subUserId = userId;
-    _subHuntId = huntId;
-
-    _progressChannel = _supabase
-        .channel('progress:$userId:$huntId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'user_progress',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: userId,
-          ),
-          callback: (payload) {
-            // Recarga al validar/insertar la siguiente pista
-            if (!mounted) return;
-            _loadData();
-          },
-        )
-        .subscribe();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -133,143 +130,44 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       // 1. Asegurar usuario autenticado
       _userId = await _huntDS.ensureUserId();
 
-      // 2. Hunt seleccionado (o primer activo como fallback)
-      final selectedHuntId = widget.huntId;
-      final hunt = selectedHuntId != null && selectedHuntId.trim().isNotEmpty
-          ? await _huntDS.getHuntById(selectedHuntId.trim())
-          : await _huntDS.getFirstActiveHunt();
+      _huntId    = widget.huntId;
+      _huntTitle = widget.huntTitle;
 
-      if (hunt == null) {
-        setState(() {
-          _dataError   = 'No hay ningún tesoro activo en este momento.\n'
-                         'Pide al Maestro que active un Hunt desde el panel.';
-          _dataLoading = false;
-          _needsJoin   = false;
-        });
-        return;
-      }
+      // 2. Pista activa + total de pistas (en paralelo)
+      final clue  = await _huntDS.getActiveClue(_userId!, _huntId!);
+      final total = await _huntDS.countHuntClues(_huntId!);
 
-      _huntId    = hunt.id;
-      _huntTitle = hunt.title;
-
-      _victory = false;
-
-      // 3. Pista activa para este jugador
-      final clue = await _huntDS.getActiveClue(_userId!, _huntId!);
-      if (clue == null) {
-        // Diferenciar: "aún no empezaste" vs "completaste todo"
-        final userId = _userId;
-        final huntId = _huntId;
-        if (userId == null || huntId == null) {
-          setState(() {
-            _dataError = 'Error de sesión: faltan datos para cargar el progreso.';
-            _dataLoading = false;
-            _needsJoin = false;
-          });
-          return;
+      // 3. Comprobar si ya hay una foto pendiente de aprobación para esta pista
+      ClueActionState initialState = ClueActionState.idle;
+      if (clue != null) {
+        final existingStatus = await _huntDS.checkProgressStatus(
+          userId: _userId!,
+          clueId: clue.clueId,
+        );
+        if (existingStatus == 'pending') {
+          initialState = ClueActionState.submitted;
         }
-
-        final count = await _supabase
-            .from('user_progress')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('hunt_id', huntId)
-            .count(CountOption.exact);
-
-        final hasProgress = (count.count ?? 0) > 0;
-        setState(() {
-          _needsJoin = !hasProgress;
-          _dataError = hasProgress
-              ? '¡Ya has completado todas las pistas de este tesoro!'
-              : null;
-          _dataLoading = false;
-          _victory = hasProgress;
-        });
-        return;
       }
-
-      final userId = _userId!;
-      final huntId = _huntId!;
-      _ensureProgressSubscription(userId: userId, huntId: huntId);
 
       setState(() {
         _activeClue  = clue;
+        _totalSteps  = total > 0 ? total : 1;
         _dataLoading = false;
-        _actionState = ClueActionState.idle;
-        _needsJoin   = false;
-        _victory     = false;
+        _actionState = initialState;
       });
-    } catch (e) {
-      setState(() {
-        final msg = e.toString();
-        _dataError = msg.contains('No hay sesión activa')
-            ? 'Necesitas iniciar sesión para jugar.\n'
-              'Vuelve atrás y entra o juega como invitado.'
-            : msg;
-        _dataLoading = false;
-        _needsJoin   = false;
-      });
-    }
-  }
 
-  Future<void> _joinHunt() async {
-    if (_userId == null) return;
-    setState(() { _dataLoading = true; _dataError = null; _joinError = null; });
-    try {
-      final result = await _supabase.rpc('join_hunt', params: {
-        'p_hunt_title': 'El Tesoro de Avilés',
-      }) as Map<String, dynamic>;
-
-      final success = result['success'] as bool? ?? false;
-      if (!success) {
-        final msg =
-            (result['message'] as String?) ?? 'No se pudo iniciar.';
-        if (!mounted) return;
-        setState(() {
-          _joinError = msg;
-          _dataLoading = false;
-          _needsJoin = true;
-        });
-        _showSnack(msg, color: AppColors.accentCoral);
-        return;
+      // Si había envío pendiente, retomar el polling
+      if (initialState == ClueActionState.submitted) {
+        _startPolling();
       }
-      // Forzar recarga inmediata de hunt + pista activa.
-      await _loadData();
-    } on PostgrestException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _joinError = e.message;
-        _dataLoading = false;
-        _needsJoin = true;
-      });
-      _showSnack(e.message, color: AppColors.error);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _joinError = e.toString();
-        _dataLoading = false;
-        _needsJoin = true;
-      });
-      _showSnack('Error: $e', color: AppColors.error);
-    }
-  }
 
-  Future<void> _resetMyProgress() async {
-    if (_huntId == null) return;
-    try {
-      await _supabase.rpc('reset_my_progress', params: {
-        'p_hunt_id': _huntId,
-      });
-      if (!mounted) return;
-      _showSnack('Progreso reseteado. Ya puedes empezar de nuevo.',
-          color: AppColors.accentGold);
-      await _loadData();
-    } on PostgrestException catch (e) {
-      if (!mounted) return;
-      _showSnack('Error: ${e.message}', color: AppColors.error);
+      // Comprobar si el hunt ya fue ganado por otro jugador
+      await _checkIfHuntWonByOther();
     } catch (e) {
-      if (!mounted) return;
-      _showSnack('Error: $e', color: AppColors.error);
+      setState(() {
+        _dataError   = e.toString();
+        _dataLoading = false;
+      });
     }
   }
 
@@ -314,7 +212,22 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     }
     if (_activeClue == null) return;
 
-    setState(() => _actionState = ClueActionState.checkingGps);
+    // Rate limiting: mínimo 30 s entre intentos
+    final now = DateTime.now();
+    if (_lastCheckInAttempt != null &&
+        now.difference(_lastCheckInAttempt!) < _checkInCooldown) {
+      final secs = (_checkInCooldown - now.difference(_lastCheckInAttempt!))
+          .inSeconds;
+      _showSnack('Espera $secs s antes de reintentar.',
+          color: AppColors.textSecondary);
+      return;
+    }
+    _lastCheckInAttempt = now;
+
+    setState(() {
+      _actionState     = ClueActionState.checkingGps;
+      _distanceMeters  = null;
+    });
     HapticFeedback.mediumImpact();
 
     bool isNear = false;
@@ -323,8 +236,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         'p_clue_id': _activeClue!.clueId,
         'p_lat':     _playerPosition!.latitude,
         'p_lng':     _playerPosition!.longitude,
-      });
+      }).timeout(const Duration(seconds: 10));
       isNear = result as bool;
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() => _actionState = ClueActionState.idle);
+      _showSnack('Sin respuesta del servidor. Comprueba tu conexión.',
+          color: AppColors.error);
+      return;
     } on PostgrestException catch (e) {
       if (kDebugMode) debugPrint('[GPS] ${e.message}');
     } catch (e) {
@@ -335,30 +254,74 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     if (isNear) {
       setState(() => _actionState = ClueActionState.gpsValidated);
       HapticFeedback.heavyImpact();
+      _awardClueXp();
     } else {
       _onGpsFail();
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // XP inmediato por GPS OK
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _awardClueXp() async {
+    if (_activeClue == null || _userId == null) return;
+    try {
+      final result = await _huntDS.awardProximityXp(
+        clueId: _activeClue!.clueId,
+        userId: _userId!,
+      );
+      if (!mounted || result['already_awarded'] == true) return;
+      final xp  = (result['xp_awarded'] as num).toInt();
+      final pos = (result['position']   as num).toInt();
+      _showXpToast(xp, pos);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[XP] $e');
+    }
+  }
+
+  void _showXpToast(int xp, int pos) {
+    final String posLabel;
+    if (pos == 1)       posLabel = '¡1º en llegar! 🥇';
+    else if (pos == 2)  posLabel = '2º en llegar 🥈';
+    else if (pos == 3)  posLabel = '3º en llegar 🥉';
+    else if (pos <= 10) posLabel = 'Posición #$pos';
+    else                posLabel = '';
+
+    final msg = posLabel.isNotEmpty ? '$posLabel  ·  +$xp XP' : '+$xp XP';
+    _showSnack(msg, color: AppColors.accentGold);
   }
 
   void _onGpsFail() {
     setState(() => _actionState = ClueActionState.tooFar);
     _shakeController.forward(from: 0);
     HapticFeedback.vibrate();
-    Future.delayed(const Duration(seconds: 2), () {
+    _fetchDistance();
+    Future.delayed(const Duration(seconds: 4), () {
       if (mounted && _actionState == ClueActionState.tooFar) {
         setState(() => _actionState = ClueActionState.idle);
       }
     });
   }
 
+  Future<void> _fetchDistance() async {
+    if (_playerPosition == null || _activeClue == null) return;
+    try {
+      final d = await _huntDS.getClueDistance(
+        clueId: _activeClue!.clueId,
+        lat:    _playerPosition!.latitude,
+        lng:    _playerPosition!.longitude,
+      );
+      if (mounted) setState(() => _distanceMeters = d);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[DIST] $e');
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // PASO 2: Cámara → Storage → user_progress (pending)
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _onTakePhoto() async {
-    final activeClue = _activeClue;
-    final userId = _userId;
-    final huntId = _huntId;
-    if (activeClue == null || userId == null || huntId == null) return;
+    if (_activeClue == null || _userId == null) return;
 
     final XFile? photo = await _imagePicker.pickImage(
       source:       ImageSource.camera,
@@ -371,10 +334,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     try {
       final timestamp   = DateTime.now().millisecondsSinceEpoch;
-      final storagePath = '$userId/${timestamp}_${activeClue.clueId}.jpg';
+      final storagePath = '$_userId/${timestamp}_${_activeClue!.clueId}.jpg';
       final imageBytes  = await photo.readAsBytes();
 
-      // Subir foto al bucket validation_photos
+      // 1. Subir foto con timeout de 30 s
       await _supabase.storage
           .from('validation_photos')
           .uploadBinary(
@@ -382,20 +345,27 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             imageBytes,
             fileOptions: const FileOptions(
                 contentType: 'image/jpeg', upsert: false),
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('Tiempo de subida agotado'),
           );
 
-      // Crear registro en user_progress con status 'pending'
-      await _supabase.from('user_progress').insert({
-        'user_id':  userId,
-        'hunt_id':  huntId,
-        'clue_id':  activeClue.clueId,
-        'status':   'pending',
-        'photo_url': storagePath,
-      });
+      // 2. Registrar progreso via RPC seguro (verifica que GPS fue validado)
+      await _huntDS.submitCluePhoto(
+        clueId:   _activeClue!.clueId,
+        photoUrl: storagePath,
+      ).timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
       setState(() => _actionState = ClueActionState.submitted);
-      _confettiController.play();
+      // Confeti se activa cuando el admin aprueba la foto (ver _checkApproval)
+      _startPolling();
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() => _actionState = ClueActionState.gpsValidated);
+      _showSnack('Tiempo de espera agotado. Comprueba tu conexión.',
+          color: AppColors.error);
     } on StorageException catch (e) {
       if (!mounted) return;
       setState(() => _actionState = ClueActionState.gpsValidated);
@@ -409,18 +379,124 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Avanza a la siguiente pista (llamado desde fuera o tras aprobación)
+  // Polling: comprobar cada 5 s si el admin aprobó la foto
+  // ─────────────────────────────────────────────────────────────────────────
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _checkApproval(),
+    );
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  Future<void> _checkApproval() async {
+    if (_activeClue == null || _userId == null) return;
+    try {
+      // Comprobar si otro jugador ganó mientras esperamos la aprobación
+      await _checkIfHuntWonByOther();
+
+      final status = await _huntDS.checkProgressStatus(
+        userId: _userId!,
+        clueId: _activeClue!.clueId,
+      );
+      if (!mounted || status != 'validated') return;
+
+      _stopPolling();
+      _confettiController.play();
+      HapticFeedback.heavyImpact();
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) await _loadNextClue();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[POLL] $e');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Avanza a la siguiente pista tras aprobación del admin
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _loadNextClue() async {
     if (_userId == null || _huntId == null) return;
     final next = await _huntDS.getActiveClue(_userId!, _huntId!);
     if (!mounted) return;
     setState(() {
-      _activeClue  = next;
-      _actionState = next == null
-          ? ClueActionState.idle   // victoria — el server ya cerró el hunt
-          : ClueActionState.idle;
+      _activeClue     = next;
+      _distanceMeters = null;
+      _actionState    = ClueActionState.idle;
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Detectar si otro jugador ya ganó este hunt
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _checkIfHuntWonByOther() async {
+    if (_huntWonByOtherShown || _huntId == null || _userId == null) return;
+    try {
+      final status = await _huntDS.checkHuntStatus(_huntId!);
+      if (!mounted || status == null) return;
+      final winner = status['winner_id'] as String?;
+      if (status['status'] == 'completed' &&
+          winner != null &&
+          winner != _userId) {
+        _huntWonByOtherShown = true;
+        _showHuntWonByOtherDialog();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[HUNT_STATUS] $e');
+    }
+  }
+
+  void _showHuntWonByOtherDialog() {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.emoji_events_rounded, color: AppColors.accentCoral, size: 24),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '¡Alguien se ha adelantado!',
+                style: TextStyle(
+                  color: AppColors.accentCoral,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Otro explorador acaba de reclamar el premio principal de este tesoro, '
+          'pero aún puedes terminar el recorrido para sumar XP y subir en el Ranking.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            height: 1.55,
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Seguir jugando',
+              style: TextStyle(
+                color: AppColors.accentCyan,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -428,7 +504,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // ─────────────────────────────────────────────────────────────────────────
   void _debugSkipToGpsOk() {
     if (_playerPosition == null) {
-      setState(() => _playerPosition = _defaultCenter);
+      setState(() => _playerPosition = _mapInitialCenter);
     }
     setState(() => _actionState = ClueActionState.gpsValidated);
     _showSnack('DEBUG: GPS simulado ✓', color: AppColors.accentGold);
@@ -451,16 +527,22 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final mapHeight    = screenHeight * 0.80;
-    final panelHeight  = screenHeight * 0.20;
-
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xCC0D1117), Color(0x000D1117)],
+            ),
+          ),
+        ),
+        iconTheme: const IconThemeData(color: AppColors.accentCyan),
         title: Text(
           _huntTitle ?? 'Consola del Tesoro',
           style: const TextStyle(color: AppColors.accentCyan,
@@ -468,51 +550,22 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_rounded, color: AppColors.textPrimary),
-            tooltip: 'Mi perfil',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ProfileScreen(),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimary),
-            tooltip: 'Cerrar sesión',
-            onPressed: () async {
-              await _supabase.auth.signOut();
-            },
-          ),
-          ValueListenableBuilder<bool>(
-            valueListenable: AppSession.isAdmin,
-            builder: (_, isAdmin, __) => IconButton(
-              icon: Icon(Icons.restart_alt_rounded,
-                  color: isAdmin ? AppColors.accentGold : AppColors.textSecondary),
-              tooltip: isAdmin ? 'Resetear mi progreso' : 'Solo administradores',
-              onPressed: (!isAdmin || _huntId == null) ? null : _resetMyProgress,
-            ),
-          ),
-          ValueListenableBuilder<bool>(
-            valueListenable: AppSession.isAdmin,
-            builder: (_, isAdmin, __) => IconButton(
-              icon: const Icon(Icons.admin_panel_settings_rounded,
-                  color: AppColors.textPrimary),
-              tooltip: isAdmin ? 'Panel del Maestro' : 'Solo administradores',
-              onPressed: (!isAdmin || _huntId == null)
-                  ? null
-                  : () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => AdminScreen(huntId: _huntId!)),
-                      ),
-            ),
+            icon: const Icon(Icons.admin_panel_settings_rounded,
+                color: AppColors.textPrimary),
+            tooltip: 'Panel del Master',
+            onPressed: _huntId == null
+                ? null
+                : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => AdminScreen(huntId: _huntId!)),
+                    ),
           ),
         ],
       ),
 
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: panelHeight + 12),
+        padding: const EdgeInsets.only(bottom: 160),
         child: FloatingActionButton(
           onPressed: _centerOnPlayer,
           backgroundColor: AppColors.accentCyan,
@@ -530,95 +583,65 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
       body: Stack(
         children: [
-          AnimatedSwitcher(
-            duration: 380.ms,
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            child: _needsJoin
-                ? _JoinHuntEmptyState(
-                    key: const ValueKey('join'),
-                    huntTitle: _huntTitle ?? 'El Tesoro de Avilés',
-                    onStart: _joinHunt,
-                    loading: _dataLoading,
-                    errorMessage: _joinError,
-                  ).animate().fadeIn(duration: 280.ms).slideY(begin: 0.06)
-                : _victory && _huntId != null
-                    ? _VictoryState(
-                        key: const ValueKey('victory'),
-                        huntTitle: _huntTitle ?? 'Tesoro completado',
-                        onRanking: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RankingScreen(),
-                          ),
-                        ),
-                      ).animate().fadeIn(duration: 280.ms).slideY(begin: 0.06)
-                : Column(
-                    key: const ValueKey('map'),
-                    children: [
-                      // ── 80%: Mapa ──────────────────────────────────────
-                      SizedBox(
-                        height: mapHeight,
-                        child: FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter:   _defaultCenter,
-                            initialZoom:     14.0,
-                            minZoom: 10.0,   maxZoom: 19.0,
-                            backgroundColor: AppColors.backgroundDark,
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate: _tileUrl,
-                              subdomains:  const ['a', 'b', 'c', 'd'],
-                              userAgentPackageName: 'com.tesoro.app',
-                              retinaMode: true,
-                            ),
-                            if (_playerPosition != null)
-                              MarkerLayer(markers: [
-                                Marker(
-                                  point: _playerPosition!,
-                                  width: 40, height: 40,
-                                  child: const _PlayerMarker(),
-                                ),
-                              ]),
-                            RichAttributionWidget(attributions: [
-                              TextSourceAttribution(
-                                  '© OpenStreetMap contributors © CARTO'),
-                            ]),
-                          ],
-                        ),
-                      ),
-
-                      // ── 20%: Panel de pista ────────────────────────────
-                      SizedBox(
-                        height: panelHeight,
-                        child: _dataLoading
-                            ? const _LoadingPanel()
-                            : _dataError != null
-                                ? _ErrorPanel(
-                                    message:  _dataError!,
-                                    onRetry:  _loadData,
-                                  )
-                                : AnimatedBuilder(
-                                    animation: _shakeAnimation,
-                                    builder: (context, child) => Transform.translate(
-                                      offset: Offset(_shakeAnimation.value * 14, 0),
-                                      child: child,
-                                    ),
-                                    child: ClueBottomPanel(
-                                      riddleText:  _activeClue!.riddleText,
-                                      actionState: _actionState,
-                                      onCheckIn:   _onCheckIn,
-                                      onTakePhoto: _onTakePhoto,
-                                    ).animate()
-                                        .slideY(begin: 0.3, duration: 400.ms,
-                                                curve: Curves.easeOut)
-                                        .fadeIn(duration: 300.ms),
-                                  ),
-                      ),
-                    ],
+          Column(
+            children: [
+              // ── Mapa: ocupa todo el espacio disponible ─────────────────
+              Expanded(
+                child: FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter:   _mapInitialCenter,
+                    initialZoom:     14.0,
+                    minZoom: 10.0,   maxZoom: 19.0,
+                    backgroundColor: AppColors.backgroundDark,
                   ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: _tileUrl,
+                      userAgentPackageName: 'com.tesoro.app',
+                    ),
+                    if (_playerPosition != null)
+                      MarkerLayer(markers: [
+                        Marker(
+                          point: _playerPosition!,
+                          width: 40, height: 40,
+                          child: const _PlayerMarker(),
+                        ),
+                      ]),
+                    RichAttributionWidget(attributions: [
+                      TextSourceAttribution('© OpenStreetMap contributors'),
+                    ]),
+                  ],
+                ),
+              ),
+
+              // ── Panel inferior: tamaño natural, sin desbordamiento ─────
+              _dataLoading
+                  ? const _LoadingPanel()
+                  : _dataError != null
+                      ? _ErrorPanel(message: _dataError!, onRetry: _loadData)
+                      : _activeClue == null
+                          ? const _VictoryPanel()
+                          : AnimatedBuilder(
+                              animation: _shakeAnimation,
+                              builder: (context, child) => Transform.translate(
+                                offset: Offset(_shakeAnimation.value * 14, 0),
+                                child: child,
+                              ),
+                              child: ClueBottomPanel(
+                                riddleText:     _activeClue!.riddleText,
+                                actionState:    _actionState,
+                                onCheckIn:      _onCheckIn,
+                                onTakePhoto:    _onTakePhoto,
+                                stepOrder:      _activeClue!.stepOrder,
+                                totalSteps:     _totalSteps,
+                                distanceMeters: _distanceMeters,
+                              ).animate()
+                                  .slideY(begin: 0.3, duration: 400.ms,
+                                          curve: Curves.easeOut)
+                                  .fadeIn(duration: 300.ms),
+                            ),
+            ],
           ),
 
           // ── Confeti ─────────────────────────────────────────────────────
@@ -639,7 +662,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           // ── Botón DEBUG ─────────────────────────────────────────────────
           if (kDebugMode)
             Positioned(
-              bottom: panelHeight + 16,
+              bottom: 160,
               left:   16,
               child: Tooltip(
                 message: 'DEBUG: Simular GPS ok',
@@ -709,204 +732,72 @@ class _ErrorPanel extends StatelessWidget {
   );
 }
 
-class _JoinHuntEmptyState extends StatelessWidget {
-  final String huntTitle;
-  final VoidCallback onStart;
-  final bool loading;
-  final String? errorMessage;
-  const _JoinHuntEmptyState({
-    super.key,
-    required this.huntTitle,
-    required this.onStart,
-    required this.loading,
-    required this.errorMessage,
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+class _VictoryPanel extends StatelessWidget {
+  const _VictoryPanel();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          color: AppColors.accentGold.withOpacity(0.12),
-                          border: Border.all(
-                              color: AppColors.accentGold.withOpacity(0.35)),
-                        ),
-                        child: const Icon(Icons.emoji_events_rounded,
-                            color: AppColors.accentGold),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          huntTitle,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    '¡Bienvenido!',
-                    style: Theme.of(context)
-                        .textTheme
-                        .displayLarge
-                        ?.copyWith(fontSize: 30),
-                    textAlign: TextAlign.left,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Aún no te has unido a esta búsqueda.\nPulsa el botón para empezar con la primera pista.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45),
-                  ),
-                  if (errorMessage != null && errorMessage!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentCoral.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.accentCoral.withOpacity(0.35)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              color: AppColors.accentCoral, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              errorMessage!,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: AppColors.textPrimary, height: 1.35),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  ElevatedButton(
-                    onPressed: loading ? null : onStart,
-                    child: loading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.4,
-                              color: AppColors.backgroundDark,
-                            ),
-                          )
-                        : const Text('¡Empezar la Búsqueda del Tesoro!'),
-                  ),
-                ],
-              ),
-            ),
+  Widget build(BuildContext context) => Container(
+    color: AppColors.cardDark,
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.emoji_events_rounded,
+            color: AppColors.accentGold, size: 52),
+        const SizedBox(height: 12),
+        const Text(
+          '¡Tesoro encontrado!',
+          style: TextStyle(
+            color: AppColors.accentGold,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
           ),
+          textAlign: TextAlign.center,
         ),
-      ),
-    );
-  }
-}
-
-class _VictoryState extends StatelessWidget {
-  final String huntTitle;
-  final VoidCallback onRanking;
-  const _VictoryState({
-    super.key,
-    required this.huntTitle,
-    required this.onRanking,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          color: AppColors.accentGold.withOpacity(0.12),
-                          border: Border.all(
-                              color: AppColors.accentGold.withOpacity(0.35)),
-                        ),
-                        child: const Icon(Icons.emoji_events_rounded,
-                            color: AppColors.accentGold),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          huntTitle,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    '¡Tesoro completado!',
-                    style: Theme.of(context)
-                        .textTheme
-                        .displayLarge
-                        ?.copyWith(fontSize: 30),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Has terminado todas las pistas disponibles.\n¿Quieres ver cómo va el ranking?',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(height: 1.45),
-                  ),
-                  const SizedBox(height: 18),
-                  ElevatedButton.icon(
-                    onPressed: onRanking,
-                    icon: const Icon(Icons.leaderboard_rounded),
-                    label: const Text('Ver ranking'),
-                  ),
-                ],
-              ),
-            ),
+        const SizedBox(height: 8),
+        const Text(
+          'Has completado todas las pistas.\nEspera la confirmación del Maestro.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            height: 1.5,
           ),
+          textAlign: TextAlign.center,
         ),
-      ),
-    );
-  }
+
+        // ── QR_SCAN_PLACEHOLDER ───────────────────────────────────────────
+        // Para activar el escaneo QR físico en la última pista:
+        //
+        // 1. En pubspec.yaml, descomentar:
+        //      mobile_scanner: ^5.1.0
+        //    y ejecutar `flutter pub get`.
+        //
+        // 2. Descomentar el import en este archivo:
+        //      import 'package:mobile_scanner/mobile_scanner.dart';
+        //
+        // 3. Reemplazar el texto de victoria por:
+        //      ElevatedButton.icon(
+        //        onPressed: () async {
+        //          await Navigator.push(context, MaterialPageRoute(
+        //            builder: (_) => MobileScanner(
+        //              onDetect: (capture) {
+        //                final code = capture.barcodes.first.rawValue;
+        //                // validar code contra el expected QR del hunt
+        //                Navigator.pop(context);
+        //              },
+        //            ),
+        //          ));
+        //        },
+        //        icon: Icon(Icons.qr_code_scanner_rounded),
+        //        label: Text('Escanear QR del tesoro'),
+        //      )
+        //
+        // NOTA: mobile_scanner solo funciona en iOS y Android (no Flutter Web).
+        // ─────────────────────────────────────────────────────────────────
+      ],
+    ),
+  ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.95, 0.95));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

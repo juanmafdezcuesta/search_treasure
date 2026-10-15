@@ -17,19 +17,69 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
 
-  bool _isRegister = false;
-  bool _loading = false;
-  bool _showPassword = false;
+  bool _isRegister     = false;
+  bool _loading        = false;
+  bool _showPassword   = false;
+  bool _termsAccepted  = false;
+  final _aliasCtrl     = TextEditingController();
+  String _registerRegion = 'Asturias';
+
+  static const List<String> _regions = [
+    'Andalucía', 'Aragón', 'Asturias', 'Illes Balears', 'Canarias',
+    'Cantabria', 'Castilla-La Mancha', 'Castilla y León', 'Cataluña',
+    'C. Valenciana', 'Extremadura', 'Galicia', 'La Rioja',
+    'Comunidad de Madrid', 'Región de Murcia', 'Navarra', 'País Vasco',
+  ];
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _aliasCtrl.dispose();
     super.dispose();
+  }
+
+  void _showTermsDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text(
+          'Exención de Responsabilidad',
+          style: TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.w700),
+        ),
+        content: const SingleChildScrollView(
+          child: Text(
+            'Al participar en Consola del Tesoro, el jugador asume plena responsabilidad de su seguridad física y vial durante la búsqueda. '
+            'Las actividades tienen lugar en entornos exteriores que pueden presentar riesgos naturales o de tráfico. '
+            'Los organizadores no se hacen responsables de accidentes, lesiones, daños materiales ni perjuicios de ningún tipo '
+            'derivados de la participación en las pruebas.\n\n'
+            'El jugador se compromete a:\n'
+            '• Respetar las normas de circulación en todo momento.\n'
+            '• No acceder a propiedades privadas sin autorización.\n'
+            '• Actuar con prudencia y respeto hacia el entorno y otras personas.\n'
+            '• Informar de cualquier incidencia a los organizadores.\n\n'
+            'La participación implica la aceptación íntegra de estas condiciones.',
+            style: TextStyle(color: AppColors.textSecondary, height: 1.5, fontSize: 13),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submit() async {
     if (_loading) return;
+    if (!_termsAccepted) {
+      _snack('Acepta los términos para continuar.', color: AppColors.accentCoral);
+      return;
+    }
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok) return;
 
@@ -39,15 +89,21 @@ class _LoginScreenState extends State<LoginScreen> {
       final password = _passCtrl.text;
 
       if (_isRegister) {
+        final alias = _aliasCtrl.text.trim();
         final res = await _client.auth.signUp(email: email, password: password);
         if (!mounted) return;
 
-        // Si el proyecto requiere confirmación por email, la sesión puede venir nula.
         if (res.session == null) {
           _snack(
             'Cuenta creada. Revisa tu correo para confirmar y luego entra.',
             color: AppColors.accentGold,
           );
+        } else if (res.user != null) {
+          await _client.from('profiles').upsert({
+            'id': res.user!.id,
+            'username': alias.isNotEmpty ? alias : email.split('@').first,
+            'origin_region': _registerRegion,
+          });
         }
       } else {
         await _client.auth.signInWithPassword(email: email, password: password);
@@ -65,6 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _guest() async {
     if (_loading) return;
+    if (!_termsAccepted) {
+      _snack('Acepta los términos para continuar.', color: AppColors.accentCoral);
+      return;
+    }
     setState(() => _loading = true);
     try {
       final res = await _client.auth.signInAnonymously();
@@ -212,9 +272,118 @@ class _LoginScreenState extends State<LoginScreen> {
                                 },
                                 onFieldSubmitted: (_) => _submit(),
                               ),
-                              const SizedBox(height: 16),
+                              // ── Campos extra de registro ──────────────
+                              if (_isRegister) ...[
+                                const SizedBox(height: 12),
+                                TextFormField(
+                                  controller: _aliasCtrl,
+                                  enabled: !_loading,
+                                  style: const TextStyle(color: AppColors.textPrimary),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Nombre de Explorador (alias público)',
+                                    hintText: 'Sin espacios · visible en el ranking',
+                                    prefixIcon: Icon(Icons.badge_rounded),
+                                  ),
+                                  validator: (v) {
+                                    final s = (v ?? '').trim();
+                                    if (s.isEmpty) return 'Elige un alias para el ranking.';
+                                    if (s.contains(' ')) return 'Sin espacios, por favor.';
+                                    if (s.contains('@')) return 'No uses un email como alias.';
+                                    if (s.length < 3) return 'Mínimo 3 caracteres.';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                DropdownButtonFormField<String>(
+                                  value: _registerRegion,
+                                  items: _regions
+                                      .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                                      .toList(),
+                                  onChanged: _loading
+                                      ? null
+                                      : (v) => setState(() => _registerRegion = v ?? 'Asturias'),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Tu Comunidad Autónoma',
+                                    prefixIcon: Icon(Icons.public_rounded),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 14),
+                              // ── Términos y condiciones (solo en registro) ──
+                              if (_isRegister) ...[
+                              InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: _loading
+                                    ? null
+                                    : () => setState(
+                                        () => _termsAccepted = !_termsAccepted),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: Checkbox(
+                                        value: _termsAccepted,
+                                        onChanged: _loading
+                                            ? null
+                                            : (v) => setState(
+                                                () => _termsAccepted = v ?? false),
+                                        activeColor: AppColors.accentCyan,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(5)),
+                                        side: BorderSide(
+                                            color: AppColors.accentCyan
+                                                .withOpacity(0.5)),
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                              height: 1.45),
+                                          children: [
+                                            const TextSpan(
+                                              text:
+                                                  'Acepto los Términos de Uso y asumo la responsabilidad de mi seguridad vial y física durante la búsqueda. ',
+                                            ),
+                                            WidgetSpan(
+                                              alignment:
+                                                  PlaceholderAlignment.baseline,
+                                              baseline: TextBaseline.alphabetic,
+                                              child: GestureDetector(
+                                                onTap: _showTermsDialog,
+                                                child: const Text(
+                                                  'Leer más',
+                                                  style: TextStyle(
+                                                    color: AppColors.accentCyan,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    decoration:
+                                                        TextDecoration.underline,
+                                                    decorationColor:
+                                                        AppColors.accentCyan,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              ], // end if (_isRegister)
                               ElevatedButton(
-                                onPressed: _loading ? null : _submit,
+                                onPressed: (_loading || (_isRegister && !_termsAccepted)) ? null : _submit,
                                 child: _loading
                                     ? const SizedBox(
                                         width: 20,
@@ -228,7 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 10),
                               OutlinedButton.icon(
-                                onPressed: _loading ? null : _guest,
+                                onPressed: (_loading || (_isRegister && !_termsAccepted)) ? null : _guest,
                                 icon: const Icon(Icons.person_outline_rounded),
                                 label: const Text('Jugar como invitado'),
                                 style: OutlinedButton.styleFrom(
@@ -236,6 +405,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                   foregroundColor: AppColors.textPrimary,
                                   side: BorderSide(color: AppColors.accentCyan.withOpacity(0.55)),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Nota: El modo invitado permite probar la app, pero necesitas una cuenta registrada para reclamar premios.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary.withOpacity(0.65),
+                                  fontSize: 11,
+                                  height: 1.4,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -255,12 +434,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Al entrar aceptas que se guarde tu progreso en Supabase.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
                 ),
@@ -307,7 +480,16 @@ class _Header extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
+        const Text(
+          'Explora tu ciudad en vivo, supera pruebas por GPS y gana premios reales.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 14),
         Text(
           title,
           style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),

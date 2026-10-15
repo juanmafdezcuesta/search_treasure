@@ -5,22 +5,257 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="App móvil gamificada de búsqueda del tesoro.">
-
-  <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Consola del Tesoro">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
   <title>Consola del Tesoro</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Geolocator web: requiere que la página se sirva desde HTTPS o localhost -->
+  <style>
+    :root {
+      --bg:    #0D1117;
+      --cyan:  #00E5CC;
+      --coral: #FF6B4A;
+      --gold:  #FFD700;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Partículas de fondo ────────────────────────── */
+    .particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0;
+      animation: float linear infinite;
+    }
+
+    /* ── Contenedor central ─────────────────────────── */
+    #loading {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* ── Logo / icono ───────────────────────────────── */
+    .icon-wrap {
+      position: relative;
+      width: 100px;
+      height: 100px;
+    }
+    .icon-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      animation: spin 2.4s linear infinite;
+    }
+    .ring-cyan  { border-top-color: var(--cyan);  animation-duration: 2.4s; }
+    .ring-coral { border-top-color: var(--coral); animation-duration: 3.6s; animation-direction: reverse; }
+    .ring-gold  { border-top-color: var(--gold);  animation-duration: 5s;   inset: 10px; }
+
+    .icon-inner {
+      position: absolute;
+      inset: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #1a2233, var(--bg));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      box-shadow: 0 0 30px rgba(0, 229, 204, 0.25);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ── Texto ──────────────────────────────────────── */
+    .title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      background: linear-gradient(135deg, var(--cyan), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ── Barra de progreso ──────────────────────────── */
+    .bar-wrap {
+      width: 220px;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--cyan), var(--coral));
+      animation: load 3s ease-out forwards;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    /* ── Dots ───────────────────────────────────────── */
+    .dots {
+      display: flex;
+      gap: 8px;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cyan);
+      opacity: 0.3;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; background: var(--coral); }
+    .dot:nth-child(3) { animation-delay: .4s; background: var(--gold);  }
+
+    /* ── Estado del texto ───────────────────────────── */
+    .status {
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.05em;
+      min-height: 18px;
+      animation: fadeMsg 0.4s ease;
+    }
+
+    /* ── Keyframes ──────────────────────────────────── */
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 20px rgba(0,229,204,.2); }
+      50%      { box-shadow: 0 0 40px rgba(0,229,204,.5); }
+    }
+    @keyframes load  { to { width: 90%; } }
+    @keyframes blink {
+      0%,100% { opacity: .3; transform: scale(1); }
+      50%      { opacity: 1;  transform: scale(1.3); }
+    }
+    @keyframes float {
+      0%   { opacity: 0; transform: translateY(0)   scale(1);   }
+      10%  { opacity: 1; }
+      90%  { opacity: .6; }
+      100% { opacity: 0; transform: translateY(-90vh) scale(0.4); }
+    }
+    @keyframes fadeMsg { from { opacity: 0; } to { opacity: 1; } }
+  </style>
 </head>
 <body>
-  <!-- Flutter 3.10+: bootstrap automático, sin window.flutterConfiguration -->
+
+  <!-- Partículas flotantes -->
+  <div class="particles" id="particles"></div>
+
+  <!-- Pantalla de carga -->
+  <div id="loading">
+    <div class="icon-wrap">
+      <div class="icon-ring ring-cyan"></div>
+      <div class="icon-ring ring-coral"></div>
+      <div class="icon-ring ring-gold"></div>
+      <div class="icon-inner">🗺️</div>
+    </div>
+
+    <div>
+      <div class="title">Consola del Tesoro</div>
+      <div class="subtitle">Asturias · Búsqueda Real</div>
+    </div>
+
+    <div class="bar-wrap">
+      <div class="bar-fill"></div>
+    </div>
+
+    <div class="dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+
+    <div class="status" id="status">Iniciando aventura...</div>
+  </div>
+
+  <script>
+    // Partículas generadas dinámicamente
+    const particles = document.getElementById('particles');
+    const colors = ['#00E5CC', '#FF6B4A', '#FFD700', '#00E676'];
+    for (let i = 0; i < 28; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 5 + 2;
+      p.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${Math.random()*100}%;
+        top:${Math.random()*100}%;
+        background:${colors[i % colors.length]};
+        animation-duration:${Math.random()*10+6}s;
+        animation-delay:${Math.random()*6}s;
+      `;
+      particles.appendChild(p);
+    }
+
+    // Mensajes rotativos
+    const msgs = [
+      'Iniciando aventura...',
+      'Cargando el mapa...',
+      'Conectando con Supabase...',
+      'Preparando las pistas...',
+      '¡Ya casi estás listo!',
+    ];
+    let i = 0;
+    const el = document.getElementById('status');
+    setInterval(() => {
+      i = (i + 1) % msgs.length;
+      el.style.animation = 'none';
+      el.offsetHeight; // reflow
+      el.style.animation = 'fadeMsg 0.4s ease';
+      el.textContent = msgs[i];
+    }, 1800);
+  </script>
+
+  <script>
+    function hideLoader() {
+      const loader = document.getElementById('loading');
+      if (!loader) return;
+      loader.style.transition = 'opacity 0.4s ease';
+      loader.style.opacity = '0';
+      loader.style.pointerEvents = 'none';
+      setTimeout(() => loader.remove(), 420);
+    }
+    window.addEventListener('flutter-first-frame', hideLoader);
+    // Fallback: ocultar tras 30 segundos (mobile + ngrok puede tardar más)
+    setTimeout(hideLoader, 30000);
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

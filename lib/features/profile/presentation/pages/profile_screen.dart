@@ -21,10 +21,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _usernameCtrl = TextEditingController();
   final _avatarCtrl = TextEditingController();
 
-  bool _loading = true;
-  bool _saving = false;
+  bool    _loading = true;
+  bool    _saving = false;
   String? _error;
   String? _originRegion;
+  String? _selectedAvatarPreset;
+
+  static const List<String> _avatarPresets = [
+    'https://api.dicebear.com/7.x/bottts/png?seed=Explorer',
+    'https://api.dicebear.com/7.x/bottts/png?seed=Ranger',
+    'https://api.dicebear.com/7.x/bottts/png?seed=Scout',
+    'https://api.dicebear.com/7.x/bottts/png?seed=Wanderer',
+    'https://api.dicebear.com/7.x/bottts/png?seed=Hunter',
+    'https://api.dicebear.com/7.x/bottts/png?seed=Navigator',
+    'https://api.dicebear.com/7.x/bottts/png?seed=Pioneer',
+    'https://api.dicebear.com/7.x/bottts/png?seed=Adventurer',
+  ];
 
   static const List<String> _regions = [
     'Andalucía',
@@ -60,6 +72,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _usernameCtrl.text = p.username;
     _avatarCtrl.text = p.avatarUrl ?? '';
     _originRegion = p.originRegion;
+    _selectedAvatarPreset =
+        _avatarPresets.contains(p.avatarUrl) ? p.avatarUrl : null;
   }
 
   Future<void> _load() async {
@@ -74,6 +88,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _usernameCtrl.text = p.username;
         _avatarCtrl.text = p.avatarUrl ?? '';
         _originRegion = p.originRegion;
+        _selectedAvatarPreset =
+            _avatarPresets.contains(p.avatarUrl) ? p.avatarUrl : null;
         _loading = false;
       });
     } on AuthException catch (e) {
@@ -264,15 +280,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       return null;
                                     },
                                   ),
-                                  const SizedBox(height: 12),
-                                  TextFormField(
-                                    controller: _avatarCtrl,
-                                    enabled: !_saving,
-                                    style: const TextStyle(color: AppColors.textPrimary),
-                                    decoration: const InputDecoration(
-                                      labelText: 'URL del avatar',
-                                      hintText: 'https://…',
-                                      prefixIcon: Icon(Icons.image_rounded),
+                                  const SizedBox(height: 14),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Elige tu avatar',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: 68,
+                                    child: ListView.separated(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: _avatarPresets.length,
+                                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                      itemBuilder: (_, i) {
+                                        final url = _avatarPresets[i];
+                                        final selected = _selectedAvatarPreset == url;
+                                        return GestureDetector(
+                                          onTap: _saving ? null : () => setState(() {
+                                            _selectedAvatarPreset = url;
+                                            _avatarCtrl.text = url;
+                                          }),
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            width: 56,
+                                            height: 56,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: selected
+                                                    ? AppColors.accentCyan
+                                                    : AppColors.textSecondary.withOpacity(0.2),
+                                                width: selected ? 2.5 : 1.5,
+                                              ),
+                                              boxShadow: selected
+                                                  ? [BoxShadow(
+                                                      color: AppColors.accentCyan.withOpacity(0.35),
+                                                      blurRadius: 10,
+                                                    )]
+                                                  : null,
+                                            ),
+                                            child: ClipOval(
+                                              child: Image.network(
+                                                url,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => const Icon(
+                                                  Icons.person_rounded,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
                                   const SizedBox(height: 12),

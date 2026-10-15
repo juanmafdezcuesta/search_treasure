@@ -484,50 +484,67 @@ class _RankTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: _Avatar(
-          radius: 20,
-          avatarUrl: avatarUrl,
-          username: username,
-          ringColor: AppColors.accentCyan.withOpacity(0.35),
-        ),
-        title: Text(
-          '$place. $username',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        subtitle: (originRegion == null || originRegion!.trim().isEmpty)
-            ? null
-            : Text(
-                originRegion!,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
           children: [
-            _LevelDot(level: level, color: AppColors.accentCyan),
-            const SizedBox(height: 6),
-            Text(
-              '$treasuresCompleted',
-              style: const TextStyle(
-                color: AppColors.accentCyan,
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
+            _Avatar(
+              radius: 20,
+              avatarUrl: avatarUrl,
+              username: username,
+              ringColor: AppColors.accentCyan.withOpacity(0.35),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$place. $username',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (originRegion != null && originRegion!.trim().isNotEmpty)
+                    Text(
+                      originRegion!,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
               ),
             ),
-            const Text(
-              'tesoros',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
-              ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LevelDot(level: level, color: AppColors.accentCyan),
+                const SizedBox(height: 4),
+                Text(
+                  '$treasuresCompleted',
+                  style: const TextStyle(
+                    color: AppColors.accentCyan,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+                const Text(
+                  'tesoros',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

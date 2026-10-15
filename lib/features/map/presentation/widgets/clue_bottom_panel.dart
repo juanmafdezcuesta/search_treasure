@@ -2,21 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
 
-// Estado de la acción del panel — controla qué botón y qué mensaje se muestra
 enum ClueActionState {
-  idle,          // "¡Estoy aquí!" — esperando que el usuario pulse
-  checkingGps,   // "Comprobando..." — RPC en curso
-  tooFar,        // "Demasiado lejos..." — fallo de proximidad
-  gpsValidated,  // "📸 Tomar foto de prueba" — GPS ok, falta foto
-  uploading,     // "Subiendo foto..." — upload en curso
-  submitted,     // "✓ Foto enviada" — pendiente de validación del Maestro
+  idle,
+  checkingGps,
+  tooFar,
+  gpsValidated,
+  uploading,
+  submitted,
 }
 
 class ClueBottomPanel extends StatelessWidget {
-  final String          riddleText;
+  final String riddleText;
   final ClueActionState actionState;
-  final VoidCallback    onCheckIn;
-  final VoidCallback?   onTakePhoto;  // activo solo en gpsValidated
+  final VoidCallback onCheckIn;
+  final VoidCallback? onTakePhoto;
+  final int stepOrder;
+  final int totalSteps;
+  final int? distanceMeters;
 
   const ClueBottomPanel({
     super.key,
@@ -24,188 +26,291 @@ class ClueBottomPanel extends StatelessWidget {
     required this.actionState,
     required this.onCheckIn,
     this.onTakePhoto,
+    this.stepOrder     = 1,
+    this.totalSteps    = 1,
+    this.distanceMeters,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.cardDark,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
-          BoxShadow(color: Colors.black54, blurRadius: 12, offset: Offset(0, -4)),
+          BoxShadow(
+            color: AppColors.accentCyan.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
+          ),
+          const BoxShadow(
+            color: Colors.black54,
+            blurRadius: 12,
+            offset: Offset(0, -2),
+          ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle visual
-          Center(
-            child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textSecondary.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(2),
+          // Línea de acento degradada
+          Container(
+            height: 3,
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              gradient: LinearGradient(
+                colors: [AppColors.accentCyan, AppColors.accentCoral, AppColors.accentGold],
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textSecondary.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-          // Etiqueta de pista + badge de estado GPS
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.accentCoral.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.accentCoral, width: 1),
-                ),
-                child: const Text(
-                  'PISTA ACTIVA',
-                  style: TextStyle(
-                    color: AppColors.accentCoral, fontSize: 11,
-                    fontWeight: FontWeight.w700, letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              if (actionState == ClueActionState.gpsValidated ||
-                  actionState == ClueActionState.uploading ||
-                  actionState == ClueActionState.submitted) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.success, width: 1),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.gps_fixed_rounded,
-                          color: AppColors.success, size: 11),
-                      SizedBox(width: 4),
-                      Text('GPS OK',
-                        style: TextStyle(
-                          color: AppColors.success, fontSize: 11,
-                          fontWeight: FontWeight.w700, letterSpacing: 1.0,
-                        ),
-                      ),
+                // Badges de estado
+                Row(
+                  children: [
+                    _Badge(
+                      label: 'PISTA ACTIVA',
+                      color: AppColors.accentCoral,
+                      icon: Icons.explore_rounded,
+                    ),
+                    if (actionState == ClueActionState.gpsValidated ||
+                        actionState == ClueActionState.uploading ||
+                        actionState == ClueActionState.submitted) ...[
+                      const SizedBox(width: 8),
+                      _Badge(
+                        label: 'GPS OK',
+                        color: AppColors.success,
+                        icon: Icons.gps_fixed_rounded,
+                        glow: true,
+                      ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8)),
                     ],
+                    const Spacer(),
+                    Text(
+                      '$stepOrder / $totalSteps',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Texto del acertijo
+                Text(
+                  riddleText,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
                   ),
-                ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.8, 0.8)),
+                ),
+                const SizedBox(height: 14),
+
+                // Acción dinámica
+                _buildAction(),
               ],
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Texto del acertijo
-          Text(
-            riddleText,
-            style: const TextStyle(
-              color: AppColors.textPrimary, fontSize: 15, height: 1.5,
             ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 14),
-
-          // ── Botón / estado dinámico ───────────────────────────────────
-          _buildActionButton(),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton() {
+  Widget _buildAction() {
     switch (actionState) {
-      // ── Estado inicial ─────────────────────────────────────────────────
       case ClueActionState.idle:
-        return _ActionButton(
-          onPressed:  onCheckIn,
-          icon:       Icons.location_on_rounded,
-          label:      '¡Estoy aquí!',
-          color:      AppColors.accentCyan,
+        return _GradientButton(
+          onPressed: onCheckIn,
+          icon: Icons.location_on_rounded,
+          label: '¡Estoy aquí!',
+          colors: [AppColors.accentCyan, const Color(0xFF00BFA5)],
         );
 
-      // ── Consultando Supabase ────────────────────────────────────────────
       case ClueActionState.checkingGps:
-        return _ActionButton(
-          onPressed:  null,
-          icon:       null,
-          label:      'Comprobando ubicación...',
-          color:      AppColors.textSecondary,
-          loading:    true,
+        return _GradientButton(
+          onPressed: null,
+          icon: null,
+          label: 'Comprobando ubicación...',
+          colors: [AppColors.textSecondary, AppColors.textSecondary],
+          loading: true,
         );
 
-      // ── Demasiado lejos ─────────────────────────────────────────────────
       case ClueActionState.tooFar:
-        return _ActionButton(
-          onPressed:  onCheckIn,
-          icon:       Icons.location_off_rounded,
-          label:      'Demasiado lejos... inténtalo de nuevo',
-          color:      AppColors.error,
-        );
-
-      // ── GPS ok → pedir foto ─────────────────────────────────────────────
-      case ClueActionState.gpsValidated:
         return Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              '¡Ubicación confirmada! Ahora toma una foto como prueba.',
-              style: TextStyle(
-                color: AppColors.textSecondary, fontSize: 13, height: 1.4,
+            if (distanceMeters != null && distanceMeters! >= 0) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.near_me_rounded,
+                        color: AppColors.accentGold, size: 15),
+                    const SizedBox(width: 6),
+                    Text(
+                      distanceMeters! >= 1000
+                          ? 'Estás a ${(distanceMeters! / 1000).toStringAsFixed(1)} km'
+                          : 'Estás a $distanceMeters m del objetivo',
+                      style: const TextStyle(
+                        color: AppColors.accentGold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ],
+            _GradientButton(
+              onPressed: onCheckIn,
+              icon: Icons.location_off_rounded,
+              label: 'Demasiado lejos... inténtalo de nuevo',
+              colors: [AppColors.error, const Color(0xFFD32F2F)],
             ),
-            const SizedBox(height: 10),
-            _ActionButton(
-              onPressed:  onTakePhoto,
-              icon:       Icons.camera_alt_rounded,
-              label:      'Tomar foto de prueba',
-              color:      AppColors.accentGold,
-            ).animate()
-                .slideY(begin: 0.4, duration: 350.ms, curve: Curves.easeOut)
-                .fadeIn(duration: 300.ms),
           ],
         );
 
-      // ── Subiendo foto ───────────────────────────────────────────────────
-      case ClueActionState.uploading:
-        return _ActionButton(
-          onPressed:  null,
-          icon:       null,
-          label:      'Subiendo foto...',
-          color:      AppColors.accentGold,
-          loading:    true,
+      case ClueActionState.gpsValidated:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: AppColors.success, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '¡Ubicación confirmada! Toma una foto como prueba.',
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            _GradientButton(
+              onPressed: onTakePhoto,
+              icon: Icons.camera_alt_rounded,
+              label: 'Tomar foto de prueba',
+              colors: [AppColors.accentGold, AppColors.accentCoral],
+            ).animate().slideY(begin: 0.4, duration: 350.ms, curve: Curves.easeOut).fadeIn(duration: 300.ms),
+          ],
         );
 
-      // ── Foto enviada, pendiente de validación ───────────────────────────
+      case ClueActionState.uploading:
+        return _GradientButton(
+          onPressed: null,
+          icon: null,
+          label: 'Subiendo foto...',
+          colors: [AppColors.accentGold, AppColors.accentCoral],
+          loading: true,
+        );
+
       case ClueActionState.submitted:
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
           decoration: BoxDecoration(
-            color:        AppColors.success.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(14),
-            border:       Border.all(color: AppColors.success, width: 1.5),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.accentCyan.withOpacity(0.08),
+                AppColors.success.withOpacity(0.12),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.accentCyan.withOpacity(0.4), width: 1.5),
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(Icons.check_circle_outline_rounded,
-                  color: AppColors.success, size: 20),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Foto enviada — esperando validación del Maestro',
-                  style: TextStyle(
-                    color: AppColors.success, fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+              // Icono pulsante
+              const Icon(Icons.hourglass_top_rounded,
+                      color: AppColors.accentCyan, size: 28)
+                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                  .scale(
+                    begin: const Offset(0.9, 0.9),
+                    end:   const Offset(1.1, 1.1),
+                    duration: 1000.ms,
+                    curve: Curves.easeInOut,
+                  )
+                  .tint(color: AppColors.accentCyan),
+              const SizedBox(height: 8),
+              const Text(
+                'Validando tu hallazgo con el Maestro del Tesoro',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.accentCyan,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 5),
+              const Text(
+                'Mantente atento — se actualizará automáticamente.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Dots animados
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (i) =>
+                  Container(
+                    width: 6, height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.accentCyan,
+                    ),
+                  )
+                  .animate(onPlay: (c) => c.repeat())
+                  .fadeIn(delay: (250 * i).ms, duration: 300.ms)
+                  .then()
+                  .fadeOut(duration: 300.ms)
+                  .then()
+                  .fadeIn(duration: 300.ms),
                 ),
               ),
             ],
@@ -215,45 +320,114 @@ class ClueBottomPanel extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Botón genérico reutilizado por todos los estados
-// ─────────────────────────────────────────────────────────────────────────────
-class _ActionButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final IconData?     icon;
-  final String        label;
-  final Color         color;
-  final bool          loading;
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+  final bool glow;
 
-  const _ActionButton({
+  const _Badge({
+    required this.label,
+    required this.color,
+    required this.icon,
+    this.glow = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color, width: 1),
+        boxShadow: glow
+            ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8)]
+            : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 11),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GradientButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final String label;
+  final List<Color> colors;
+  final bool loading;
+
+  const _GradientButton({
     required this.onPressed,
     required this.icon,
     required this.label,
-    required this.color,
+    required this.colors,
     this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final disabled = onPressed == null;
     return SizedBox(
       width: double.infinity,
       height: 52,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: onPressed == null ? color.withOpacity(0.45) : color,
-          foregroundColor: AppColors.backgroundDark,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          elevation: onPressed == null ? 0 : 2,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: disabled
+                ? [colors[0].withOpacity(0.35), colors.last.withOpacity(0.35)]
+                : colors,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: disabled
+              ? null
+              : [BoxShadow(color: colors[0].withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
         ),
-        icon: loading
-            ? const SizedBox(
-                width: 18, height: 18,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2.2, color: AppColors.backgroundDark))
-            : (icon != null ? Icon(icon, size: 20) : const SizedBox.shrink()),
-        label: Text(label,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (loading)
+                  const SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.backgroundDark),
+                  )
+                else if (icon != null)
+                  Icon(icon, color: AppColors.backgroundDark, size: 20),
+                const SizedBox(width: 10),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppColors.backgroundDark,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

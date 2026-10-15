@@ -70,7 +70,16 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 : null;
         _createdAt = DateTime.tryParse((profile['created_at'] as String?) ?? '');
         _xp = (profile['xp'] as num?)?.toInt() ?? 0;
-        _trophies = trophies.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        // Deduplicar por hunt_id para evitar sellos repetidos
+        final seen = <String>{};
+        _trophies = trophies
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .where((t) {
+              final id = (t['hunt_id'] ?? t['hunt_title']) as String?;
+              if (id == null) return true;
+              return seen.add(id);
+            })
+            .toList();
         _loading = false;
       });
     } on PostgrestException catch (e) {

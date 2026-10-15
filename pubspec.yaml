@@ -25,7 +25,7 @@ dependencies:
   flutter_animate: ^4.5.0       # Microinteracciones y transiciones
   confetti: ^0.7.0              # Animación de confeti en victoria
   image_picker: ^1.1.2          # Cámara / galería para foto de prueba
-  # mobile_scanner: ^5.1.0      # QR: solo móvil, habilitar cuando se implemente VictoryScreen
+  # mobile_scanner: ^5.1.0      # QR: descomentar + ver QR_SCAN_PLACEHOLDER en map_screen.dart (solo iOS/Android)
 
 dev_dependencies:
   flutter_test:
