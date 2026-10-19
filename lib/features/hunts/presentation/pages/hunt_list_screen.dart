@@ -90,6 +90,34 @@ class _HuntListScreenState extends State<HuntListScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
+            ),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.5),
+          child: Container(
+            height: 1.5,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  AppColors.accentCyan,
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
         title: Text(
           widget.region,
           style: const TextStyle(
@@ -251,110 +279,141 @@ class _HuntCard extends StatelessWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 42, height: 42,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: color.withOpacity(0.35)),
-                  ),
-                  child: Icon(icon, color: color),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(color: color.withOpacity(0.20), blurRadius: 20, offset: const Offset(0, 6)),
+            const BoxShadow(color: Color(0x55000000), blurRadius: 8, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Material(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            splashColor: color.withOpacity(0.12),
+            highlightColor: color.withOpacity(0.06),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: color.withOpacity(0.30), width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        hunt.title,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if ((hunt.description ?? '').trim().isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          hunt.description!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
-                      if ((hunt.rewardInfo ?? '').trim().isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.accentGold.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: AppColors.accentGold.withOpacity(0.55)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.emoji_events_rounded,
-                                    color: AppColors.accentGold, size: 15),
-                                const SizedBox(width: 6),
-                                Text(
-                                  hunt.rewardInfo!,
-                                  style: const TextStyle(
-                                    color: AppColors.accentGold,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                      Container(width: 4, color: color),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42, height: 42,
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(0.14),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: color.withOpacity(0.35)),
                                 ),
-                              ],
-                            ),
+                                child: Icon(icon, color: color),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      hunt.title,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    if ((hunt.description ?? '').trim().isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        hunt.description!,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                    ],
+                                    if ((hunt.rewardInfo ?? '').trim().isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Container(
+                                          padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.accentGold.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(999),
+                                            border: Border.all(color: AppColors.accentGold.withOpacity(0.55)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.emoji_events_rounded,
+                                                  color: AppColors.accentGold, size: 15),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                hunt.rewardInfo!,
+                                                style: const TextStyle(
+                                                  color: AppColors.accentGold,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: color.withOpacity(0.14),
+                                            borderRadius: BorderRadius.circular(999),
+                                            border: Border.all(color: color.withOpacity(0.35)),
+                                          ),
+                                          child: Text(
+                                            label,
+                                            style: TextStyle(
+                                              color: color,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text('Entrar',
+                                            style: TextStyle(
+                                                color: color, fontWeight: FontWeight.w700)),
+                                        Icon(Icons.chevron_right_rounded, color: color),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.14),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: color.withOpacity(0.35)),
-                            ),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                color: color,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text('Entrar',
-                              style: TextStyle(
-                                  color: color, fontWeight: FontWeight.w700)),
-                          Icon(Icons.chevron_right_rounded, color: color),
-                        ],
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -382,122 +441,110 @@ class _DraftHuntCard extends StatelessWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Opacity(
-        opacity: 0.75,
-        child: Card(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: AppColors.accentGold.withOpacity(0.35), width: 1),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 42, height: 42,
-                    decoration: BoxDecoration(
-                      color: AppColors.accentGold.withOpacity(0.10),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.accentGold.withOpacity(0.30)),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.accentGold.withOpacity(0.20), width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: [
+              Container(
+                width: 42, height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.accentGold.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.accentGold.withOpacity(0.20)),
+                ),
+                child: Icon(diffIcon, color: AppColors.accentGold.withOpacity(0.45)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: AppColors.textPrimary.withOpacity(0.65),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
                     ),
-                    child: Icon(diffIcon, color: AppColors.accentGold.withOpacity(0.6)),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
+                    if (desc.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        desc,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textSecondary.withOpacity(0.70),
+                          height: 1.25,
                         ),
-                        if (desc.trim().isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            desc,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              height: 1.25,
-                            ),
-                          ),
-                        ],
-                        if (reward.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Container(
-                              padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentGold.withOpacity(0.10),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: AppColors.accentGold.withOpacity(0.35)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.emoji_events_rounded,
-                                      color: AppColors.accentGold.withOpacity(0.6), size: 14),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    reward,
-                                    style: TextStyle(
-                                      color: AppColors.accentGold.withOpacity(0.7),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        // Badge "Próximamente"
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      ),
+                    ],
+                    if (reward.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
                           decoration: BoxDecoration(
-                            color: AppColors.accentGold.withOpacity(0.10),
+                            color: AppColors.accentGold.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: AppColors.accentGold.withOpacity(0.40)),
+                            border: Border.all(color: AppColors.accentGold.withOpacity(0.25)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.lock_clock_rounded,
-                                  color: AppColors.accentGold.withOpacity(0.7), size: 13),
-                              const SizedBox(width: 5),
+                              Icon(Icons.emoji_events_rounded,
+                                  color: AppColors.accentGold.withOpacity(0.50), size: 14),
+                              const SizedBox(width: 6),
                               Text(
-                                'Próximamente',
+                                reward,
                                 style: TextStyle(
-                                  color: AppColors.accentGold.withOpacity(0.85),
+                                  color: AppColors.accentGold.withOpacity(0.60),
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 12,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGold.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: AppColors.accentGold.withOpacity(0.28)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_clock_rounded,
+                              color: AppColors.accentGold.withOpacity(0.60), size: 13),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Próximamente',
+                            style: TextStyle(
+                              color: AppColors.accentGold.withOpacity(0.70),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -525,142 +572,124 @@ class _CompletedHuntCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Opacity(
-        opacity: 0.55,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Row(
-              children: [
-                // Icono tachado / bloqueado
-                Container(
-                  width: 42, height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.textSecondary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: AppColors.textSecondary.withOpacity(0.2)),
-                  ),
-                  child: Icon(diffIcon,
-                      color: AppColors.textSecondary.withOpacity(0.5)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.textSecondary.withOpacity(0.10), width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: [
+              Container(
+                width: 42, height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.textSecondary.withOpacity(0.14)),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          decoration: TextDecoration.lineThrough,
-                          decorationColor: AppColors.textSecondary,
-                        ),
+                child: Icon(diffIcon, color: AppColors.textSecondary.withOpacity(0.35)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: AppColors.textSecondary.withOpacity(0.75),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: AppColors.textSecondary.withOpacity(0.5),
                       ),
-                      if (desc.trim().isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          desc,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                      // Badge de premio (si existe)
-                      Builder(builder: (_) {
-                        final reward = ((data['reward_info'] as String?) ?? '').trim();
-                        if (reward.isEmpty) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Container(
-                              padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentGold.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                    color: AppColors.accentGold.withOpacity(0.45)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.emoji_events_rounded,
-                                      color: AppColors.accentGold, size: 13),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    reward,
-                                    style: const TextStyle(
-                                      color: AppColors.accentGold,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 8),
-                      // Badge de resultado
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: (isWinner
-                                  ? AppColors.accentGold
-                                  : AppColors.textSecondary)
-                              .withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: (isWinner
-                                    ? AppColors.accentGold
-                                    : AppColors.textSecondary)
-                                .withOpacity(0.35),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isWinner
-                                  ? Icons.emoji_events_rounded
-                                  : Icons.lock_rounded,
-                              color: isWinner
-                                  ? AppColors.accentGold
-                                  : AppColors.textSecondary,
-                              size: 13,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              isWinner ? 'Ganador' : 'Completada',
-                              style: TextStyle(
-                                color: isWinner
-                                    ? AppColors.accentGold
-                                    : AppColors.textSecondary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                    ),
+                    if (desc.trim().isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        desc,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textSecondary.withOpacity(0.50),
+                          fontSize: 12,
                         ),
                       ),
                     ],
-                  ),
+                    Builder(builder: (_) {
+                      final reward = ((data['reward_info'] as String?) ?? '').trim();
+                      if (reward.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentGold.withOpacity(0.07),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppColors.accentGold.withOpacity(0.22)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.emoji_events_rounded,
+                                  color: AppColors.accentGold.withOpacity(0.50), size: 12),
+                              const SizedBox(width: 5),
+                              Text(
+                                reward,
+                                style: TextStyle(
+                                  color: AppColors.accentGold.withOpacity(0.60),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 7),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: (isWinner ? AppColors.accentGold : AppColors.textSecondary)
+                            .withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: (isWinner ? AppColors.accentGold : AppColors.textSecondary)
+                              .withOpacity(0.22),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isWinner ? Icons.emoji_events_rounded : Icons.lock_rounded,
+                            color: (isWinner ? AppColors.accentGold : AppColors.textSecondary)
+                                .withOpacity(0.55),
+                            size: 13,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            isWinner ? 'Ganador' : 'Completada',
+                            style: TextStyle(
+                              color: (isWinner ? AppColors.accentGold : AppColors.textSecondary)
+                                  .withOpacity(0.65),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-
-                // Icono de candado a la derecha
-                Icon(Icons.lock_outline_rounded,
-                    color: AppColors.textSecondary.withOpacity(0.4),
-                    size: 20),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.lock_outline_rounded,
+                  color: AppColors.textSecondary.withOpacity(0.22), size: 18),
+            ],
           ),
         ),
       ),

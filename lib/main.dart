@@ -25,11 +25,16 @@ class ConsolaTesoro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title:        'Consola del Tesoro',
-      debugShowCheckedModeBanner: false,
-      theme:        AppTheme.dark,
-      home: const AuthGate(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppSession.themeMode,
+      builder: (_, mode, __) => MaterialApp(
+        title:                    'Consola del Tesoro',
+        debugShowCheckedModeBanner: false,
+        theme:                    AppTheme.light,
+        darkTheme:                AppTheme.dark,
+        themeMode:                mode,
+        home:                     const AuthGate(),
+      ),
     );
   }
 }

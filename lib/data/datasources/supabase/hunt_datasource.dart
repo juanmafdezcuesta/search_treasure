@@ -224,6 +224,38 @@ class HuntDatasource {
         .toSet();
   }
 
+  // ── Coste de la pista extra de una clue (0 = sin ayuda disponible) ─────────
+  Future<int> getClueHintCost(String clueId) async {
+    final row = await _client
+        .from('clues')
+        .select('hint_cost')
+        .eq('id', clueId)
+        .maybeSingle();
+    return (row?['hint_cost'] as num? ?? 0).toInt();
+  }
+
+  // ── Comprueba si el usuario ya desbloqueó la ayuda de esta pista ───────────
+  Future<bool> isHintUnlocked(String clueId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return false;
+    final row = await _client
+        .from('unlocked_hints')
+        .select('clue_id')
+        .eq('user_id', userId)
+        .eq('clue_id', clueId)
+        .maybeSingle();
+    return row != null;
+  }
+
+  // ── Desbloquea la ayuda vía RPC (idempotente: no cobra si ya desbloqueada) ─
+  // Devuelve {hint_text, already_unlocked, cost_paid, new_balance?}
+  Future<Map<String, dynamic>> unlockHint(String clueId) async {
+    final result = await _client.rpc('unlock_clue_hint', params: {
+      'p_clue_id': clueId,
+    });
+    return Map<String, dynamic>.from(result as Map);
+  }
+
   // ── Validaciones ya aprobadas (para la vista de ganadores en AdminScreen) ─
   Future<List<Map<String, dynamic>>> getValidatedProgress(String huntId) async {
     final rows = await _client

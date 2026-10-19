@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
@@ -19,6 +21,10 @@ class ClueBottomPanel extends StatelessWidget {
   final int stepOrder;
   final int totalSteps;
   final int? distanceMeters;
+  final int hintCost;
+  final String? hintText;
+  final bool hintLoading;
+  final VoidCallback? onUnlockHint;
 
   const ClueBottomPanel({
     super.key,
@@ -29,6 +35,10 @@ class ClueBottomPanel extends StatelessWidget {
     this.stepOrder     = 1,
     this.totalSteps    = 1,
     this.distanceMeters,
+    this.hintCost    = 0,
+    this.hintText,
+    this.hintLoading = false,
+    this.onUnlockHint,
   });
 
   @override
@@ -125,6 +135,10 @@ class ClueBottomPanel extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 12),
+
+                // ── Sección de pista extra ───────────────────────────────
+                _buildHintSection(),
                 const SizedBox(height: 14),
 
                 // Acción dinámica
@@ -133,6 +147,66 @@ class ClueBottomPanel extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHintSection() {
+    // Sin pista disponible para esta clue
+    if (hintCost == 0) return const SizedBox.shrink();
+
+    // Pista ya desbloqueada
+    if (hintText != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.accentGold.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.accentGold.withOpacity(0.35)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.lightbulb_rounded,
+                color: AppColors.accentGold, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                hintText!,
+                style: const TextStyle(
+                  color: AppColors.accentGold,
+                  fontSize: 13,
+                  height: 1.45,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ).animate().fadeIn(duration: 300.ms);
+    }
+
+    // Botón para desbloquear
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: hintLoading ? null : onUnlockHint,
+        icon: hintLoading
+            ? const SizedBox(
+                width: 14, height: 14,
+                child: CircularProgressIndicator(
+                    strokeWidth: 1.8, color: AppColors.accentGold))
+            : const Icon(Icons.lightbulb_outline_rounded, size: 16),
+        label: Text(
+          hintLoading ? 'Desbloqueando...' : 'Pista extra · $hintCost monedas',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.accentGold,
+          side: BorderSide(color: AppColors.accentGold.withOpacity(0.5)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          minimumSize: const Size(0, 40),
+        ),
       ),
     );
   }

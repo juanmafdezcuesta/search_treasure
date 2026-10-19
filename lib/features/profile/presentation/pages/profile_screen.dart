@@ -169,7 +169,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : NetworkImage(avatarUrl);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
         title: const Text(
           'Mi perfil',
@@ -375,6 +374,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ],
                               ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        // ── Selector de tema ─────────────────────────────
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.brightness_6_rounded,
+                                    color: AppColors.accentCyan, size: 20),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Apariencia',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                const Spacer(),
+                                ValueListenableBuilder<ThemeMode>(
+                                  valueListenable: AppSession.themeMode,
+                                  builder: (ctx, mode, _) =>
+                                      DropdownButton<ThemeMode>(
+                                    value: mode,
+                                    underline: const SizedBox.shrink(),
+                                    dropdownColor:
+                                        Theme.of(ctx).colorScheme.surface,
+                                    items: const [
+                                      DropdownMenuItem(
+                                          value: ThemeMode.system,
+                                          child: Text('Sistema')),
+                                      DropdownMenuItem(
+                                          value: ThemeMode.light,
+                                          child: Text('Claro')),
+                                      DropdownMenuItem(
+                                          value: ThemeMode.dark,
+                                          child: Text('Oscuro')),
+                                    ],
+                                    onChanged: (v) {
+                                      if (v != null) AppSession.themeMode.value = v;
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

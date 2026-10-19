@@ -188,73 +188,115 @@ class _RegionCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
-      child: Card(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: color.withOpacity(0.35)),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                color.withOpacity(0.14),
-                AppColors.cardDark.withOpacity(1.0),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withOpacity(0.45), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.12),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(17),
+          child: Stack(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(12),
+              // Color accent – lavado en la esquina superior-izquierda
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [color.withOpacity(0.38), Colors.transparent],
+                      stops: const [0.0, 0.70],
                     ),
-                    child: Icon(region.icon, color: color, size: 22),
                   ),
-                  const Spacer(),
-                  // Badge de conteo (solo cuando ya se cargaron los datos)
-                  if (loaded)
-                    hasHunts
-                        ? _CountBadge(count: huntCount!, color: AppColors.accentCyan)
-                        : const _ProximaBadge(),
-                ],
+                ),
               ),
-              const Spacer(),
-              Text(
-                region.name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+              // Scrim inferior – garantiza legibilidad del texto
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.72),
+                      ],
+                      stops: const [0.0, 0.38, 1.0],
                     ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(
-                    hasHunts || !loaded ? 'Ver tesoros' : 'Sin activos',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: hasHunts || !loaded ? color : AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+              // Contenido
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.30),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: color.withOpacity(0.45)),
+                          ),
+                          child: Icon(region.icon, color: color, size: 22),
                         ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: hasHunts || !loaded ? color : AppColors.textSecondary,
-                    size: 16,
-                  ),
-                ],
+                        const Spacer(),
+                        if (loaded)
+                          hasHunts
+                              ? _CountBadge(count: huntCount!, color: AppColors.accentCyan)
+                              : const _ProximaBadge(),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      region.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          hasHunts || !loaded ? 'Ver tesoros' : 'Sin activos',
+                          style: TextStyle(
+                            color: hasHunts || !loaded
+                                ? AppColors.accentCyan
+                                : Colors.white.withOpacity(0.45),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: hasHunts || !loaded
+                              ? AppColors.accentCyan
+                              : Colors.white.withOpacity(0.35),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -273,9 +315,9 @@ class _CountBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.15),
+      color: Colors.black.withOpacity(0.45),
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: color.withOpacity(0.5)),
+      border: Border.all(color: color.withOpacity(0.75)),
     ),
     child: Text(
       count == 1 ? '1 activo' : '$count activos',
@@ -296,9 +338,9 @@ class _ProximaBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
     decoration: BoxDecoration(
-      color: AppColors.textSecondary.withOpacity(0.08),
+      color: Colors.black.withOpacity(0.45),
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: AppColors.textSecondary.withOpacity(0.2)),
+      border: Border.all(color: Colors.white.withOpacity(0.25)),
     ),
     child: const Row(
       mainAxisSize: MainAxisSize.min,

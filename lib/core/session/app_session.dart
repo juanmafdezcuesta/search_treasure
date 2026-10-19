@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/profile.dart';
@@ -6,8 +7,9 @@ import '../models/profile.dart';
 class AppSession {
   AppSession._();
 
-  static final ValueNotifier<Profile?> profile = ValueNotifier<Profile?>(null);
-  static final ValueNotifier<bool> isAdmin = ValueNotifier<bool>(false);
+  static final ValueNotifier<Profile?>   profile   = ValueNotifier<Profile?>(null);
+  static final ValueNotifier<bool>       isAdmin   = ValueNotifier<bool>(false);
+  static final ValueNotifier<ThemeMode>  themeMode = ValueNotifier<ThemeMode>(ThemeMode.system);
 
   static void clear() {
     profile.value = null;

@@ -62,6 +62,11 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // ── Estado: otro jugador ya ganó ─────────────────────────────────────────
   bool _huntWonByOtherShown = false;
 
+  // ── Pista extra (monetización) ────────────────────────────────────────────
+  int     _hintCost    = 0;
+  String? _hintText;
+  bool    _hintLoading = false;
+
   // ── Animaciones ───────────────────────────────────────────────────────────
   late final AnimationController _shakeController;
   late final Animation<double>   _shakeAnimation;
@@ -149,11 +154,29 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         }
       }
 
+      // 4. Cargar coste y estado de la pista extra (si hay pista activa)
+      int hintCost = 0;
+      String? hintText;
+      if (clue != null) {
+        final results = await Future.wait([
+          _huntDS.getClueHintCost(clue.clueId),
+          _huntDS.isHintUnlocked(clue.clueId),
+        ]);
+        hintCost = results[0] as int;
+        final alreadyUnlocked = results[1] as bool;
+        if (alreadyUnlocked && hintCost > 0) {
+          final res = await _huntDS.unlockHint(clue.clueId);
+          hintText = res['hint_text'] as String?;
+        }
+      }
+
       setState(() {
         _activeClue  = clue;
         _totalSteps  = total > 0 ? total : 1;
         _dataLoading = false;
         _actionState = initialState;
+        _hintCost    = hintCost;
+        _hintText    = hintText;
       });
 
       // Si había envío pendiente, retomar el polling
@@ -417,16 +440,55 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Pista extra: desbloquear pagando monedas
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _onUnlockHint() async {
+    if (_activeClue == null || _hintLoading) return;
+    setState(() => _hintLoading = true);
+    try {
+      final res = await _huntDS.unlockHint(_activeClue!.clueId);
+      if (!mounted) return;
+      final text = res['hint_text'] as String?;
+      final paid = (res['cost_paid'] as num? ?? 0).toInt();
+      setState(() {
+        _hintText    = text;
+        _hintLoading = false;
+      });
+      if (paid > 0) {
+        _showSnack('-$paid monedas · Pista desbloqueada',
+            color: AppColors.accentGold);
+      }
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      setState(() => _hintLoading = false);
+      _showSnack(e.message, color: AppColors.error);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _hintLoading = false);
+      _showSnack('Error al desbloquear pista.', color: AppColors.error);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Avanza a la siguiente pista tras aprobación del admin
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _loadNextClue() async {
     if (_userId == null || _huntId == null) return;
     final next = await _huntDS.getActiveClue(_userId!, _huntId!);
     if (!mounted) return;
+
+    int nextHintCost = 0;
+    if (next != null) {
+      nextHintCost = await _huntDS.getClueHintCost(next.clueId);
+    }
+
     setState(() {
       _activeClue     = next;
       _distanceMeters = null;
       _actionState    = ClueActionState.idle;
+      _hintCost       = nextHintCost;
+      _hintText       = null;
+      _hintLoading    = false;
     });
   }
 
@@ -658,6 +720,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                 stepOrder:      _activeClue!.stepOrder,
                                 totalSteps:     _totalSteps,
                                 distanceMeters: _distanceMeters,
+                                hintCost:       _hintCost,
+                                hintText:       _hintText,
+                                hintLoading:    _hintLoading,
+                                onUnlockHint:   _onUnlockHint,
                               ).animate()
                                   .slideY(begin: 0.3, duration: 400.ms,
                                           curve: Curves.easeOut)

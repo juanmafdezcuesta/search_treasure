@@ -23,7 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _showPassword   = false;
   bool _termsAccepted  = false;
   final _aliasCtrl     = TextEditingController();
-  String _registerRegion = 'Asturias';
+  String    _registerRegion = 'Asturias';
+  DateTime? _birthDate;
 
   static const List<String> _regions = [
     'Andalucía', 'Aragón', 'Asturias', 'Illes Balears', 'Canarias',
@@ -38,6 +39,30 @@ class _LoginScreenState extends State<LoginScreen> {
     _passCtrl.dispose();
     _aliasCtrl.dispose();
     super.dispose();
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final today = DateTime.now();
+    int age = today.year - birthDate.year;
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  Future<void> _pickBirthDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'FECHA DE NACIMIENTO',
+      confirmText: 'CONFIRMAR',
+      cancelText: 'CANCELAR',
+      builder: (ctx, child) => Theme(data: Theme.of(ctx), child: child!),
+    );
+    if (picked != null && mounted) setState(() => _birthDate = picked);
   }
 
   void _showTermsDialog() {
@@ -81,6 +106,19 @@ class _LoginScreenState extends State<LoginScreen> {
       _snack('Acepta los términos para continuar.', color: AppColors.accentCoral);
       return;
     }
+    if (_isRegister) {
+      if (_birthDate == null) {
+        _snack('La fecha de nacimiento es obligatoria', color: AppColors.error);
+        return;
+      }
+      if (_calculateAge(_birthDate!) < 16) {
+        _snack(
+          'Debes tener al menos 16 años para jugar y reclamar recompensas reales',
+          color: AppColors.error,
+        );
+        return;
+      }
+    }
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok) return;
 
@@ -91,7 +129,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (_isRegister) {
         final alias = _aliasCtrl.text.trim();
-        final res = await _client.auth.signUp(email: email, password: password);
+        final birthIso = '${_birthDate!.year}-'
+            '${_birthDate!.month.toString().padLeft(2, '0')}-'
+            '${_birthDate!.day.toString().padLeft(2, '0')}';
+
+        final res = await _client.auth.signUp(
+          email: email,
+          password: password,
+          data: {
+            'username':   alias.isNotEmpty ? alias : email.split('@').first,
+            'birth_date': birthIso,
+          },
+        );
         if (!mounted) return;
 
         if (res.session == null) {
@@ -103,12 +152,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
           if (!mounted) return;
-          setState(() => _isRegister = false);
+          setState(() { _isRegister = false; _birthDate = null; });
         } else if (res.user != null) {
           await _client.from('profiles').upsert({
-            'id': res.user!.id,
-            'username': alias.isNotEmpty ? alias : email.split('@').first,
+            'id':            res.user!.id,
+            'username':      alias.isNotEmpty ? alias : email.split('@').first,
             'origin_region': _registerRegion,
+            'birth_date':    birthIso,
           });
         }
       } else {
@@ -313,6 +363,37 @@ class _LoginScreenState extends State<LoginScreen> {
                                     prefixIcon: Icon(Icons.public_rounded),
                                   ),
                                 ),
+                                const SizedBox(height: 12),
+                                // ── Selector de fecha de nacimiento ──────
+                                InkWell(
+                                  onTap: _loading ? null : _pickBirthDate,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: InputDecorator(
+                                    decoration: InputDecoration(
+                                      labelText: 'Fecha de nacimiento *',
+                                      prefixIcon: const Icon(Icons.cake_rounded),
+                                      suffixIcon: Icon(
+                                        Icons.calendar_month_rounded,
+                                        size: 20,
+                                        color: _birthDate != null
+                                            ? AppColors.accentCyan
+                                            : null,
+                                      ),
+                                    ),
+                                    isEmpty: _birthDate == null,
+                                    child: _birthDate == null
+                                        ? const SizedBox.shrink()
+                                        : Text(
+                                            '${_birthDate!.day.toString().padLeft(2, '0')} / '
+                                            '${_birthDate!.month.toString().padLeft(2, '0')} / '
+                                            '${_birthDate!.year}',
+                                            style: const TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                  ),
+                                ),
                               ],
                               const SizedBox(height: 14),
                               // ── Términos y condiciones (solo en registro) ──
@@ -428,7 +509,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: TextButton(
                                   onPressed: _loading
                                       ? null
-                                      : () => setState(() => _isRegister = !_isRegister),
+                                      : () => setState(() {
+                                            _isRegister = !_isRegister;
+                                            _birthDate  = null;
+                                          }),
                                   child: Text(
                                     _isRegister
                                         ? '¿Ya tienes cuenta? Entrar'
