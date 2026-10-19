@@ -60,18 +60,26 @@ lib/
 | RPC | Retorna | Descripción |
 |---|---|---|
 | `get_active_clue(p_user_id, p_hunt_id)` | TABLE | Primera pista sin validar; excluye columna `location` |
-| `check_proximity(p_clue_id, p_lat, p_lng)` | bool | Valida GPS server-side con PostGIS ST_Distance |
+| `check_proximity(p_clue_id, p_lat, p_lng)` | bool | Valida GPS server-side con PostGIS ST_Distance + rate limit 25 s en BD |
 | `award_proximity_xp(p_clue_id, p_user_id)` | jsonb | Registra llegada GPS e ingresa XP por posición; idempotente vía `clue_xp_awards` |
 | `get_clue_distance(p_clue_id, p_lat, p_lng)` | integer | Metros al objetivo sin revelar coordenadas; -1 si no existe |
 | `submit_clue_photo(p_clue_id, p_photo_url)` | jsonb | Inserta en `user_progress` solo si existe entrada en `clue_xp_awards` (gate de seguridad) |
 | `approve_validation(p_progress_id)` | jsonb | Marca validated, activa siguiente pista, completa hunt si es la última (+500 XP) |
 | `reject_validation(p_progress_id, p_reason)` | jsonb | Elimina la entrada; el jugador puede reintentar |
 | `get_pending_validations(p_hunt_id)` | TABLE | Solo accesible al master del hunt |
-| `get_public_trophies(p_profile_id)` | TABLE | Hunts completados de cualquier perfil (bypass RLS) |
+| `get_public_trophies(p_profile_id)` | TABLE | Hunts completados de cualquier perfil; usa COALESCE(validated_at, created_at) para compatibilidad con entries antiguas sin validated_at |
 
 **Tablas**: `hunts`, `clues`, `user_progress`, `profiles`, `clue_xp_awards`
-**Vistas**: `leaderboard` (⚠ no tiene migración en repo — creada directamente en Supabase), `clues_public`
+**Vistas**: `leaderboard` (migración en repo: `20261015000001`), `clues_public`
 **Storage bucket**: `validation_photos` (privado, 5 MB, JPEG/PNG/WebP)
+
+### Migraciones clave
+| Archivo | Contenido |
+|---|---|
+| `20240316000002_admin_functions.sql` | approve/reject_validation v1 (sin validated_at, sin marcar hunt completed) |
+| `20260317000007_reward_xp_on_hunt_completion.sql` | approve_validation v2: sets validated_at, marca hunt completed, +500 XP, winner_id |
+| `20261015000001_leaderboard_and_rate_limit.sql` | Vista leaderboard + rate limiting 25 s server-side en check_proximity |
+| `20261015000002_fix_trophies_rpc.sql` | get_public_trophies: elimina filtro validated_at IS NOT NULL, añade DISTINCT ON |
 
 ## Tema y Estilos
 - Siempre usar `AppColors` definidos en `lib/core/theme/app_theme.dart`
@@ -95,7 +103,7 @@ lib/
 - Validación de victoria **exclusivamente en servidor** (nunca en cliente)
 - Coordenadas GPS nunca expuestas al cliente (SECURITY DEFINER en RPCs)
 - Foto solo enviable si GPS fue validado: `submit_clue_photo` comprueba entrada en `clue_xp_awards`
-- Rate limiting 30 s en **cliente** (`_lastCheckInAttempt` en MapScreen) — **pendiente** implementar en Supabase también
+- Rate limiting **doble capa**: 30 s en cliente (`_lastCheckInAttempt` en MapScreen) + 25 s en servidor (`check_proximity` vía campo `last_proximity_check` en profiles)
 - Detección de Mock Location (GPS falso) — **pendiente** (no implementada)
 - `env.json` con credenciales incluido en assets (la anon key de Supabase es segura por diseño)
 
@@ -103,10 +111,11 @@ lib/
 - `mobile_scanner ^5.1.0` ya en pubspec (comentado): escaneo QR en VictoryScreen
 - Tutorial de onboarding (3 pasos con ilustraciones) antes del registro
 - Términos y Condiciones con checkbox de exención de responsabilidad
-- Rate limiting server-side en `check_proximity` (función SQL)
 - Detección de Mock Location con aviso al usuario
-- Vista `leaderboard` como migración SQL en el repositorio (actualmente solo existe en Supabase)
 - Notificación al resto de jugadores cuando se completa un hunt
+- Sistema de Escuadrón real (tabla `squads` + distribución de XP entre miembros)
+- ~~Rate limiting server-side en `check_proximity`~~ ✅ implementado en `20261015000001`
+- ~~Vista `leaderboard` como migración SQL~~ ✅ en `20261015000001`
 
 ## Notas Técnicas
 - **Flutter Web**: no usar `dart:io` (crash en web). Usar `dart:async` para `TimeoutException`. Comprobar antes de añadir imports de plataforma.

@@ -270,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     enabled: !_saving,
                                     style: const TextStyle(color: AppColors.textPrimary),
                                     decoration: const InputDecoration(
-                                      labelText: 'Nombre de usuario',
+                                      labelText: 'Alias o Nombre del Equipo',
                                       prefixIcon: Icon(Icons.badge_rounded),
                                     ),
                                     validator: (v) {

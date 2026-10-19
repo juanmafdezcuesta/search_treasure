@@ -71,6 +71,19 @@ class HuntDatasource {
     return counts;
   }
 
+  // ── Hunts en borrador de una región (vista previa "Próximamente") ────────
+  Future<List<Map<String, dynamic>>> listDraftHunts({
+    required String region,
+  }) async {
+    final rows = await _client
+        .from('hunts')
+        .select('id, title, description, difficulty, reward_info, region, status')
+        .eq('status', 'draft')
+        .eq('region', region)
+        .order('created_at');
+    return List<Map<String, dynamic>>.from(rows as List);
+  }
+
   // ── Hunts completados de una región (para mostrar como "antiguas") ───────
   Future<List<Map<String, dynamic>>> listCompletedHunts({
     required String region,
@@ -181,6 +194,34 @@ class HuntDatasource {
         .maybeSingle();
     if (row == null) return null;
     return Map<String, dynamic>.from(row);
+  }
+
+  // ── IDs de hunts que el usuario terminó completamente en cliente ────────────
+  // Un hunt "completado" tiene pistas 'validated' PERO NINGUNA 'pending'.
+  // Si hay 'pending', el usuario aún está en curso (admin no aprobó la última
+  // foto). Esta condición evita mover al bloque COMPLETADAS hunts en progreso.
+  // Necesario para hunts cuyo status sigue 'active' en BD porque se completaron
+  // antes de que approve_validation actualizara hunts.status automáticamente.
+  Future<Set<String>> getUserFullyCompletedHuntIds() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return {};
+    final rows = await _client
+        .from('user_progress')
+        .select('hunt_id, status')
+        .eq('user_id', userId)
+        .inFilter('status', ['validated', 'pending']);
+
+    final byHunt = <String, Set<String>>{};
+    for (final r in rows as List) {
+      final hId = r['hunt_id'] as String;
+      final st  = r['status']  as String;
+      byHunt.putIfAbsent(hId, () => {}).add(st);
+    }
+    return byHunt.entries
+        .where((e) =>
+            e.value.contains('validated') && !e.value.contains('pending'))
+        .map((e) => e.key)
+        .toSet();
   }
 
   // ── Validaciones ya aprobadas (para la vista de ganadores en AdminScreen) ─

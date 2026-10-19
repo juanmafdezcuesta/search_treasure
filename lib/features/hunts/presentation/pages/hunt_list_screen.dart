@@ -23,6 +23,7 @@ class _HuntListScreenState extends State<HuntListScreen> {
   String? _error;
   List<Hunt> _activeHunts    = const [];
   List<Map<String, dynamic>> _completedHunts = const [];
+  List<Map<String, dynamic>> _draftHunts     = const [];
   String? _userId;
 
   @override
@@ -39,11 +40,40 @@ class _HuntListScreenState extends State<HuntListScreen> {
       final results = await Future.wait([
         _ds.listActiveHunts(region: widget.region),
         _ds.listCompletedHunts(region: widget.region),
+        _ds.listDraftHunts(region: widget.region),
+        _ds.getUserFullyCompletedHuntIds(),
       ]);
       if (!mounted) return;
+
+      final active      = results[0] as List<Hunt>;
+      final completed   = List<Map<String, dynamic>>.from(results[1] as List);
+      final draft       = results[2] as List<Map<String, dynamic>>;
+      final userDoneIds = results[3] as Set<String>;
+
+      // Hunts activos que el usuario ya terminó (servidor no los marcó
+      // 'completed' porque se completaron con la versión antigua del RPC).
+      // Los movemos al bloque COMPLETADAS para que no aparezcan en DISPONIBLES.
+      final stillActive = <Hunt>[];
+      for (final h in active) {
+        if (userDoneIds.contains(h.id)) {
+          completed.insert(0, {
+            'id':          h.id,
+            'title':       h.title,
+            'description': h.description,
+            'difficulty':  h.difficulty,
+            'reward_info': h.rewardInfo,
+            'region':      h.region,
+            'winner_id':   null,
+          });
+        } else {
+          stillActive.add(h);
+        }
+      }
+
       setState(() {
-        _activeHunts    = results[0] as List<Hunt>;
-        _completedHunts = results[1] as List<Map<String, dynamic>>;
+        _activeHunts    = stillActive;
+        _completedHunts = completed;
+        _draftHunts     = draft;
         _loading        = false;
       });
     } on PostgrestException catch (e) {
@@ -94,11 +124,40 @@ class _HuntListScreenState extends State<HuntListScreen> {
     );
   }
 
+  void _showExpeditionRules(Hunt hunt) {
+    showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: AppColors.backgroundDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _ExpeditionRulesSheet(
+        onConfirm: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MapScreen(
+                huntId:    hunt.id,
+                huntTitle: hunt.title,
+                region:    widget.region,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildList() {
     final hasActive    = _activeHunts.isNotEmpty;
     final hasCompleted = _completedHunts.isNotEmpty;
+    final hasDraft     = _draftHunts.isNotEmpty;
 
-    if (!hasActive && !hasCompleted) {
+    if (!hasActive && !hasCompleted && !hasDraft) {
       return const _CenteredMessage(
         icon: Icons.search_off_rounded,
         iconColor: AppColors.textSecondary,
@@ -116,24 +175,27 @@ class _HuntListScreenState extends State<HuntListScreen> {
           for (int i = 0; i < _activeHunts.length; i++)
             _HuntCard(
               hunt: _activeHunts[i],
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MapScreen(
-                    huntId:    _activeHunts[i].id,
-                    huntTitle: _activeHunts[i].title,
-                    region:    widget.region,
-                  ),
-                ),
-              ),
+              onTap: () => _showExpeditionRules(_activeHunts[i]),
             ).animate()
+                .fadeIn(delay: (50 * i).ms, duration: 220.ms)
+                .slideY(begin: 0.06),
+        ],
+
+        // ── Próximamente (draft) ──────────────────────────────────────────────
+        if (hasDraft) ...[
+          SizedBox(height: hasActive ? 24 : 0),
+          _SectionLabel(label: 'PRÓXIMAMENTE', color: AppColors.accentGold),
+          const SizedBox(height: 8),
+          for (int i = 0; i < _draftHunts.length; i++)
+            _DraftHuntCard(data: _draftHunts[i])
+                .animate()
                 .fadeIn(delay: (50 * i).ms, duration: 220.ms)
                 .slideY(begin: 0.06),
         ],
 
         // ── Completadas ───────────────────────────────────────────────────────
         if (hasCompleted) ...[
-          SizedBox(height: hasActive ? 24 : 0),
+          SizedBox(height: (hasActive || hasDraft) ? 24 : 0),
           _SectionLabel(label: 'COMPLETADAS', color: AppColors.textSecondary),
           const SizedBox(height: 8),
           for (int i = 0; i < _completedHunts.length; i++)
@@ -302,6 +364,148 @@ class _HuntCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+class _DraftHuntCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _DraftHuntCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = (data['title'] as String?) ?? 'Próximo Tesoro';
+    final desc  = (data['description'] as String?) ?? '';
+    final diff  = (data['difficulty'] as String?) ?? 'medium';
+    final reward = ((data['reward_info'] as String?) ?? '').trim();
+
+    final (_, diffColor, diffIcon) = switch (diff) {
+      'easy' => ('Fácil', AppColors.success, Icons.sentiment_satisfied_rounded),
+      'hard' => ('Difícil', AppColors.accentCoral, Icons.local_fire_department_rounded),
+      _ => ('Media', AppColors.accentCyan, Icons.explore_rounded),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Opacity(
+        opacity: 0.75,
+        child: Card(
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: AppColors.accentGold.withOpacity(0.35), width: 1),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42, height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGold.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.accentGold.withOpacity(0.30)),
+                    ),
+                    child: Icon(diffIcon, color: AppColors.accentGold.withOpacity(0.6)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (desc.trim().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            desc,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                        if (reward.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGold.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: AppColors.accentGold.withOpacity(0.35)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.emoji_events_rounded,
+                                      color: AppColors.accentGold.withOpacity(0.6), size: 14),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    reward,
+                                    style: TextStyle(
+                                      color: AppColors.accentGold.withOpacity(0.7),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        // Badge "Próximamente"
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentGold.withOpacity(0.10),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppColors.accentGold.withOpacity(0.40)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lock_clock_rounded,
+                                  color: AppColors.accentGold.withOpacity(0.7), size: 13),
+                              const SizedBox(width: 5),
+                              Text(
+                                'Próximamente',
+                                style: TextStyle(
+                                  color: AppColors.accentGold.withOpacity(0.85),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 class _CompletedHuntCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final bool isWinner;
@@ -460,6 +664,124 @@ class _CompletedHuntCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+class _ExpeditionRulesSheet extends StatelessWidget {
+  final VoidCallback onConfirm;
+  const _ExpeditionRulesSheet({required this.onConfirm});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Reglas de la Expedición',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.accentCyan,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const _RuleRow(
+              emoji: '🐺',
+              title: 'Lobo solitario o Escuadrón',
+              body: 'Juega por tu cuenta y llévate toda la gloria, o forma un equipo de hasta 4 personas compartiendo un solo móvil.',
+            ),
+            const SizedBox(height: 14),
+            const _RuleRow(
+              emoji: '🧠',
+              title: 'Cero spoilers',
+              body: 'Disfruta del reto y no compartas las respuestas con otros exploradores por redes sociales.',
+            ),
+            const SizedBox(height: 14),
+            const _RuleRow(
+              emoji: '📸',
+              title: 'Selfie de validación',
+              body: 'Para que el Maestro apruebe tu posición, tu cara (y la de todo tu equipo si vas acompañado) debe aparecer claramente en la foto junto al lugar clave.',
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: onConfirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentCyan,
+                  foregroundColor: AppColors.backgroundDark,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                child: const Text('¡Entendido, al mapa!'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RuleRow extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final String body;
+  const _RuleRow({required this.emoji, required this.title, required this.body});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 22)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                body,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -222,7 +222,17 @@ class ClueBottomPanel extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            const Text(
+              '📸 Recuerda: Todos los miembros del equipo deben salir en la foto',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
             _GradientButton(
               onPressed: onTakePhoto,
               icon: Icons.camera_alt_rounded,

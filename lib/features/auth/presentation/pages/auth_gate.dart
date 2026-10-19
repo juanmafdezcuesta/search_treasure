@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:consola_tesoro/core/session/app_session.dart';
+import 'package:consola_tesoro/core/theme/app_theme.dart';
 import 'package:consola_tesoro/features/auth/presentation/pages/login_screen.dart';
 import 'package:consola_tesoro/features/regions/presentation/pages/region_selection_screen.dart';
 
@@ -66,12 +67,55 @@ class _AuthLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: SizedBox(
-          width: 26,
-          height: 26,
-          child: CircularProgressIndicator(strokeWidth: 2.6),
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.backgroundDark,
+              Color(0xFF0B2A2C),
+              AppColors.backgroundDark,
+            ],
+            stops: [0.0, 0.55, 1.0],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: AppColors.accentCyan.withOpacity(0.12),
+                  border: Border.all(color: AppColors.accentCyan.withOpacity(0.35)),
+                ),
+                child: const Icon(Icons.map_rounded,
+                    color: AppColors.accentCyan, size: 32),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Consola del Tesoro',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: AppColors.accentCyan,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -517,7 +517,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       backgroundColor: color,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 360),
       duration: const Duration(seconds: 3),
     ));
   }
@@ -564,53 +564,75 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         ],
       ),
 
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 160),
-        child: FloatingActionButton(
-          onPressed: _centerOnPlayer,
-          backgroundColor: AppColors.accentCyan,
-          foregroundColor: AppColors.backgroundDark,
-          tooltip: 'Centrar mi ubicación',
-          child: _locationLoading
-              ? const SizedBox(
-                  width: 22, height: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: AppColors.backgroundDark))
-              : const Icon(Icons.my_location_rounded, size: 26),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
       body: Stack(
         children: [
           Column(
             children: [
-              // ── Mapa: ocupa todo el espacio disponible ─────────────────
+              // ── Mapa con FAB y debug superpuestos ─────────────────────
               Expanded(
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter:   _mapInitialCenter,
-                    initialZoom:     14.0,
-                    minZoom: 10.0,   maxZoom: 19.0,
-                    backgroundColor: AppColors.backgroundDark,
-                  ),
+                child: Stack(
                   children: [
-                    TileLayer(
-                      urlTemplate: _tileUrl,
-                      userAgentPackageName: 'com.tesoro.app',
-                    ),
-                    if (_playerPosition != null)
-                      MarkerLayer(markers: [
-                        Marker(
-                          point: _playerPosition!,
-                          width: 40, height: 40,
-                          child: const _PlayerMarker(),
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter:   _mapInitialCenter,
+                        initialZoom:     14.0,
+                        minZoom: 10.0,   maxZoom: 19.0,
+                        backgroundColor: AppColors.backgroundDark,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: _tileUrl,
+                          userAgentPackageName: 'com.tesoro.app',
                         ),
-                      ]),
-                    RichAttributionWidget(attributions: [
-                      TextSourceAttribution('© OpenStreetMap contributors'),
-                    ]),
+                        if (_playerPosition != null)
+                          MarkerLayer(markers: [
+                            Marker(
+                              point: _playerPosition!,
+                              width: 40, height: 40,
+                              child: const _PlayerMarker(),
+                            ),
+                          ]),
+                        RichAttributionWidget(attributions: [
+                          TextSourceAttribution('© OpenStreetMap contributors'),
+                        ]),
+                      ],
+                    ),
+
+                    // FAB anclado al área del mapa — nunca solapa el panel
+                    Positioned(
+                      right:  16,
+                      bottom: 16,
+                      child: FloatingActionButton(
+                        onPressed:       _centerOnPlayer,
+                        backgroundColor: AppColors.accentCyan,
+                        foregroundColor: AppColors.backgroundDark,
+                        tooltip:         'Centrar mi ubicación',
+                        child: _locationLoading
+                            ? const SizedBox(
+                                width: 22, height: 22,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: AppColors.backgroundDark))
+                            : const Icon(Icons.my_location_rounded, size: 26),
+                      ),
+                    ),
+
+                    if (kDebugMode)
+                      Positioned(
+                        left:   16,
+                        bottom: 16,
+                        child: Tooltip(
+                          message: 'DEBUG: Simular GPS ok',
+                          child: FloatingActionButton.small(
+                            heroTag:         'debug_fab',
+                            onPressed:       _debugSkipToGpsOk,
+                            backgroundColor: AppColors.accentGold.withOpacity(0.85),
+                            foregroundColor: AppColors.backgroundDark,
+                            child: const Icon(Icons.bug_report_rounded, size: 18),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -651,30 +673,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               confettiController:  _confettiController,
               blastDirectionality: BlastDirectionality.explosive,
               numberOfParticles:   40,
-              gravity:             0.15,
+              gravity:             0.35,
               colors: const [
                 AppColors.accentCyan,  AppColors.accentCoral,
                 AppColors.accentGold,  AppColors.success, Colors.white,
               ],
             ),
           ),
-
-          // ── Botón DEBUG ─────────────────────────────────────────────────
-          if (kDebugMode)
-            Positioned(
-              bottom: 160,
-              left:   16,
-              child: Tooltip(
-                message: 'DEBUG: Simular GPS ok',
-                child: FloatingActionButton.small(
-                  heroTag:         'debug_fab',
-                  onPressed:       _debugSkipToGpsOk,
-                  backgroundColor: AppColors.accentGold.withOpacity(0.85),
-                  foregroundColor: AppColors.backgroundDark,
-                  child: const Icon(Icons.bug_report_rounded, size: 18),
-                ),
-              ),
-            ),
         ],
       ),
     );

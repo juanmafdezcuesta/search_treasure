@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:consola_tesoro/core/theme/app_theme.dart';
+import 'package:consola_tesoro/features/auth/presentation/pages/email_confirmation_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -76,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (_loading) return;
-    if (!_termsAccepted) {
+    if (_isRegister && !_termsAccepted) {
       _snack('Acepta los términos para continuar.', color: AppColors.accentCoral);
       return;
     }
@@ -94,10 +95,15 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         if (res.session == null) {
-          _snack(
-            'Cuenta creada. Revisa tu correo para confirmar y luego entra.',
-            color: AppColors.accentGold,
+          if (!mounted) return;
+          await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EmailConfirmationScreen(email: email),
+            ),
           );
+          if (!mounted) return;
+          setState(() => _isRegister = false);
         } else if (res.user != null) {
           await _client.from('profiles').upsert({
             'id': res.user!.id,
@@ -121,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _guest() async {
     if (_loading) return;
-    if (!_termsAccepted) {
+    if (_isRegister && !_termsAccepted) {
       _snack('Acepta los términos para continuar.', color: AppColors.accentCoral);
       return;
     }
@@ -280,8 +286,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   enabled: !_loading,
                                   style: const TextStyle(color: AppColors.textPrimary),
                                   decoration: const InputDecoration(
-                                    labelText: 'Nombre de Explorador (alias público)',
-                                    hintText: 'Sin espacios · visible en el ranking',
+                                    labelText: 'Alias o Nombre del Equipo',
+                                    hintText: 'Sin espacios · aparecerá en el ranking',
                                     prefixIcon: Icon(Icons.badge_rounded),
                                   ),
                                   validator: (v) {
