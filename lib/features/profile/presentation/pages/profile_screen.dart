@@ -168,8 +168,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? null
         : NetworkImage(avatarUrl);
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.dark,
+      child: Scaffold(
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                height: 1.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.accentCyan.withOpacity(0.7),
+                      AppColors.accentCyan.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         title: const Text(
           'Mi perfil',
           style: TextStyle(
@@ -205,6 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Card(
+                          color: AppColors.cardDark,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
                             child: Column(
@@ -257,6 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 12),
                         Card(
+                          color: AppColors.cardDark,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                             child: Form(
@@ -380,6 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 14),
                         // ── Selector de tema ─────────────────────────────
                         Card(
+                          color: AppColors.cardDark,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
                             child: Row(
@@ -398,8 +433,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       DropdownButton<ThemeMode>(
                                     value: mode,
                                     underline: const SizedBox.shrink(),
-                                    dropdownColor:
-                                        Theme.of(ctx).colorScheme.surface,
+                                    dropdownColor: AppColors.cardDark,
+                                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                                     items: const [
                                       DropdownMenuItem(
                                           value: ThemeMode.system,
@@ -440,7 +475,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
       ),
-    );
+      ), // Scaffold
+    ); // Theme
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/config/env_config.dart';
@@ -33,6 +34,13 @@ class ConsolaTesoro extends StatelessWidget {
         theme:                    AppTheme.light,
         darkTheme:                AppTheme.dark,
         themeMode:                mode,
+        locale:                   const Locale('es', 'ES'),
+        localizationsDelegates:   const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales:         const [Locale('es', 'ES')],
         home:                     const AuthGate(),
       ),
     );

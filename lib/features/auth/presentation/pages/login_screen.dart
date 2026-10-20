@@ -242,7 +242,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ? 'Regístrate y guarda tu progreso.'
         : 'Inicia sesión para continuar tu búsqueda.';
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.dark,
+      child: Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -268,6 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _Header(title: title, subtitle: subtitle),
                     const SizedBox(height: 18),
                     Card(
+                      color: AppColors.cardDark,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
                         child: Form(
@@ -532,6 +535,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -582,7 +586,7 @@ class _Header extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           title,
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 6),
         Text(

@@ -69,6 +69,35 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                height: 1.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.accentCyan.withOpacity(0.7),
+                      AppColors.accentCyan.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         title: const Text(
           'Elige una región',
           style: TextStyle(

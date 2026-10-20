@@ -97,9 +97,40 @@ class _RankingScreenState extends State<RankingScreen> {
     final sorted = [...filtered]
       ..sort((a, b) => _readTotalHunts(b).compareTo(_readTotalHunts(a)));
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.dark,
+      child: Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                height: 1.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.accentCyan.withOpacity(0.7),
+                      AppColors.accentCyan.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         title: const Text('Ranking',
             style: TextStyle(
                 color: AppColors.accentCyan,
@@ -215,7 +246,8 @@ class _RankingScreenState extends State<RankingScreen> {
                     ),
                   ],
                 ),
-    );
+      ), // Scaffold
+    ); // Theme
   }
 
   List<Map<String, dynamic>> _applyFilter(
@@ -349,6 +381,7 @@ class _PodiumTile extends StatelessWidget {
     };
 
     return Card(
+      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 10),
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -483,6 +516,7 @@ class _RankTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
