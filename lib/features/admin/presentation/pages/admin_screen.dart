@@ -220,11 +220,40 @@ class _AdminScreenState extends State<AdminScreen>
   // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: AppTheme.dark,
+      child: Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                height: 1.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.accentCyan.withOpacity(0.7),
+                      AppColors.accentCyan.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         title: const Text('Panel del Maestro',
             style: TextStyle(color: AppColors.accentCyan,
                 fontWeight: FontWeight.w700, fontSize: 18)),
@@ -261,6 +290,7 @@ class _AdminScreenState extends State<AdminScreen>
           _buildValidatedTab(),
         ],
       ),
+    ),
     );
   }
 

@@ -103,18 +103,49 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final xpInLevel = _xp % 1000;
     const xpNext = 1000;
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.dark,
+      child: Scaffold(
       backgroundColor: AppColors.backgroundDark,
-      appBar: AppBar(
-        title: const Text(
-          'Perfil público',
-          style: TextStyle(
-            color: AppColors.accentCyan,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: AppColors.textPrimary,
+          iconTheme: const IconThemeData(color: AppColors.textPrimary),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Container(
+                  height: 1.5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.accentCyan.withOpacity(0.7),
+                        AppColors.accentCyan.withOpacity(0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
+          title: const Text(
+            'Perfil público',
+            style: TextStyle(
+              color: AppColors.accentCyan,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
+          ),
+          actions: [
           if (isMe)
             TextButton.icon(
               onPressed: () async {
@@ -189,6 +220,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                     ),
                   ),
       ),
+    ),
     );
   }
 
@@ -235,19 +267,20 @@ class _AdventurerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = avatarUrl?.trim();
     return Card(
+      color: AppColors.cardDark,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.accentCyan.withOpacity(0.16),
-              AppColors.cardDark,
+              AppColors.accentCyan.withOpacity(0.10),
+              Colors.transparent,
             ],
           ),
-          border: Border.all(color: AppColors.accentCyan.withOpacity(0.30)),
+          border: Border.all(color: AppColors.accentCyan.withOpacity(0.22)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

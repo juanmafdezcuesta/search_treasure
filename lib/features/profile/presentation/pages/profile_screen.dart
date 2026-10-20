@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:consola_tesoro/core/models/profile.dart';
 import 'package:consola_tesoro/core/session/app_session.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
 import 'package:consola_tesoro/data/repositories/profile_repository.dart';
+import 'package:consola_tesoro/features/profile/presentation/pages/public_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -236,6 +238,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // ── Carnet de Aventurero ─────────────────────────
+                        if (p != null) ...[
+                          _AdventurerCardPreview(
+                            profile: p,
+                            onViewPublic: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PublicProfileScreen(profileId: p.id),
+                              ),
+                            ),
+                          ).animate().fadeIn(duration: 220.ms).slideY(begin: 0.04),
+                          const SizedBox(height: 12),
+                        ],
                         Card(
                           color: AppColors.cardDark,
                           child: Padding(
@@ -522,5 +537,146 @@ class _CenteredMessage extends StatelessWidget {
           ),
         ),
       );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+class _AdventurerCardPreview extends StatelessWidget {
+  final Profile profile;
+  final VoidCallback onViewPublic;
+  const _AdventurerCardPreview({required this.profile, required this.onViewPublic});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = (profile.avatarUrl ?? '').trim();
+    final hasAvatar = url.isNotEmpty;
+    return Card(
+      color: AppColors.cardDark,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.accentCyan.withOpacity(0.10), Colors.transparent],
+          ),
+          border: Border.all(color: AppColors.accentCyan.withOpacity(0.22)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.accentGold.withOpacity(0.55), width: 2),
+                    boxShadow: [BoxShadow(color: AppColors.accentCyan.withOpacity(0.18), blurRadius: 14)],
+                    image: hasAvatar
+                        ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
+                        : null,
+                  ),
+                  child: !hasAvatar
+                      ? const Icon(Icons.person_rounded, size: 28, color: AppColors.textSecondary)
+                      : null,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CARNET DE AVENTURERO',
+                        style: TextStyle(
+                          color: AppColors.accentGold,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        profile.username,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 17,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if ((profile.originRegion ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.public_rounded, size: 12, color: AppColors.textSecondary),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                profile.originRegion!,
+                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGold.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(50),
+                    border: Border.all(color: AppColors.accentGold.withOpacity(0.35)),
+                  ),
+                  child: Text(
+                    'Nivel ${profile.level}',
+                    style: const TextStyle(color: AppColors.accentGold, fontWeight: FontWeight.w900, fontSize: 12),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'XP ${profile.xpInCurrentLevel} / ${profile.xpForNextLevel}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: (profile.xpInCurrentLevel / profile.xpForNextLevel).clamp(0.0, 1.0),
+                minHeight: 8,
+                backgroundColor: AppColors.backgroundDark.withOpacity(0.55),
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentCyan),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onViewPublic,
+              icon: const Icon(Icons.badge_rounded, size: 16),
+              label: const Text('Ver carnet público'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 42),
+                foregroundColor: AppColors.accentCyan,
+                side: BorderSide(color: AppColors.accentCyan.withOpacity(0.50), width: 1.5),
+                shape: const StadiumBorder(),
+                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 

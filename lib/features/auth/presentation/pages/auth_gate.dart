@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -67,6 +68,12 @@ class _AuthLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // On web the HTML splash screen handles the loading UI.
+    // Return a plain dark background so the HTML fade-out is seamless.
+    if (kIsWeb) {
+      return const Scaffold(backgroundColor: AppColors.backgroundDark);
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
