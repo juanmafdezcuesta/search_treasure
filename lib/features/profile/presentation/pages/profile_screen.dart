@@ -170,16 +170,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? null
         : NetworkImage(avatarUrl);
 
-    return Theme(
-      data: AppTheme.dark,
-      child: Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark ? Colors.transparent : null,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        flexibleSpace: Container(
+        foregroundColor: isDark ? AppColors.textPrimary : null,
+        iconTheme: isDark ? const IconThemeData(color: AppColors.textPrimary) : null,
+        flexibleSpace: isDark ? Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -203,11 +202,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-        ),
-        title: const Text(
+        ) : null,
+        title: Text(
           'Mi perfil',
           style: TextStyle(
-            color: AppColors.accentCyan,
+            color: isDark ? AppColors.accentCyan : null,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
@@ -216,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             tooltip: 'Actualizar',
             onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            icon: Icon(Icons.refresh_rounded, color: isDark ? AppColors.textPrimary : null),
           ),
         ],
       ),
@@ -252,7 +251,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 12),
                         ],
                         Card(
-                          color: AppColors.cardDark,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
                             child: Column(
@@ -286,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   p?.username ?? 'Jugador',
                                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.w800,
-                                        color: AppColors.textPrimary,
+                                        color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                                       ),
                                 ),
                                 if ((_originRegion ?? '').trim().isNotEmpty) ...[
@@ -305,7 +303,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 12),
                         Card(
-                          color: AppColors.cardDark,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                             child: Form(
@@ -316,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   TextFormField(
                                     controller: _usernameCtrl,
                                     enabled: !_saving,
-                                    style: const TextStyle(color: AppColors.textPrimary),
+                                    style: TextStyle(color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight),
                                     decoration: const InputDecoration(
                                       labelText: 'Alias o Nombre del Equipo',
                                       prefixIcon: Icon(Icons.badge_rounded),
@@ -429,7 +426,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 14),
                         // ── Selector de tema ─────────────────────────────
                         Card(
-                          color: AppColors.cardDark,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
                             child: Row(
@@ -448,8 +444,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       DropdownButton<ThemeMode>(
                                     value: mode,
                                     underline: const SizedBox.shrink(),
-                                    dropdownColor: AppColors.cardDark,
-                                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                                    dropdownColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+                                    style: TextStyle(color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
                                     items: const [
                                       DropdownMenuItem(
                                           value: ThemeMode.system,
@@ -481,7 +477,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           label: const Text('Cerrar sesión'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 52),
-                            foregroundColor: AppColors.textPrimary,
+                            foregroundColor: AppColors.accentCoral,
                             side: BorderSide(color: AppColors.accentCoral.withOpacity(0.6)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -490,8 +486,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
       ),
-      ), // Scaffold
-    ); // Theme
+    );
   }
 }
 
@@ -547,10 +542,10 @@ class _AdventurerCardPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final url = (profile.avatarUrl ?? '').trim();
     final hasAvatar = url.isNotEmpty;
     return Card(
-      color: AppColors.cardDark,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         decoration: BoxDecoration(
@@ -599,8 +594,8 @@ class _AdventurerCardPreview extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         profile.username,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                           fontWeight: FontWeight.w800,
                           fontSize: 17,
                         ),
@@ -656,7 +651,7 @@ class _AdventurerCardPreview extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: (profile.xpInCurrentLevel / profile.xpForNextLevel).clamp(0.0, 1.0),
                 minHeight: 8,
-                backgroundColor: AppColors.backgroundDark.withOpacity(0.55),
+                backgroundColor: (isDark ? AppColors.backgroundDark : Colors.black12).withOpacity(0.55),
                 valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentCyan),
               ),
             ),

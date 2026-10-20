@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:consola_tesoro/core/theme/app_theme.dart';
+import 'package:consola_tesoro/core/theme/app_theme.dart'; // AppColors
 import 'package:consola_tesoro/data/datasources/supabase/hunt_datasource.dart';
 import '../widgets/validation_card.dart';
 
@@ -220,16 +220,15 @@ class _AdminScreenState extends State<AdminScreen>
   // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.dark,
-      child: Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark ? Colors.transparent : null,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        flexibleSpace: Container(
+        foregroundColor: isDark ? AppColors.textPrimary : null,
+        iconTheme: isDark ? const IconThemeData(color: AppColors.textPrimary) : null,
+        flexibleSpace: isDark ? Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -253,14 +252,14 @@ class _AdminScreenState extends State<AdminScreen>
               ),
             ],
           ),
-        ),
-        title: const Text('Panel del Maestro',
-            style: TextStyle(color: AppColors.accentCyan,
+        ) : null,
+        title: Text('Panel del Maestro',
+            style: TextStyle(color: isDark ? AppColors.accentCyan : null,
                 fontWeight: FontWeight.w700, fontSize: 18)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColors.textPrimary),
+            icon: Icon(Icons.refresh_rounded,
+                color: isDark ? AppColors.textPrimary : null),
             tooltip: 'Actualizar',
             onPressed: () { _loadPending(); _loadValidated(); },
           ),
@@ -290,7 +289,6 @@ class _AdminScreenState extends State<AdminScreen>
           _buildValidatedTab(),
         ],
       ),
-    ),
     );
   }
 

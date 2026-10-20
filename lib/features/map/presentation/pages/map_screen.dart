@@ -67,13 +67,16 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   String? _hintText;
   bool    _hintLoading = false;
 
+  // ── Tipo de mapa ──────────────────────────────────────────────────────────
+  bool _isSatellite = false;
+
   // ── Animaciones ───────────────────────────────────────────────────────────
   late final AnimationController _shakeController;
   late final Animation<double>   _shakeAnimation;
   late final ConfettiController  _confettiController;
 
-  static const String _tileUrl =
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  static const String _osmUrl       = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  static const String _satelliteUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
   // Centro inicial basado en la región del hunt (fallback: centro de España)
   late final LatLng _mapInitialCenter;
@@ -644,7 +647,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: _tileUrl,
+                          urlTemplate: _isSatellite ? _satelliteUrl : _osmUrl,
                           userAgentPackageName: 'com.tesoro.app',
                         ),
                         if (_playerPosition != null)
@@ -656,9 +659,57 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             ),
                           ]),
                         RichAttributionWidget(attributions: [
-                          TextSourceAttribution('© OpenStreetMap contributors'),
+                          TextSourceAttribution(
+                            _isSatellite
+                                ? '© Esri, Maxar, Earthstar Geographics'
+                                : '© OpenStreetMap contributors',
+                          ),
                         ]),
                       ],
+                    ),
+
+                    // Toggle OSM ↔ Satélite
+                    Positioned(
+                      left:   16,
+                      bottom: 16,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isSatellite = !_isSatellite),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: _isSatellite
+                                ? AppColors.accentCyan.withOpacity(0.18)
+                                : AppColors.backgroundDark.withOpacity(0.82),
+                            borderRadius: BorderRadius.circular(50),
+                            border: Border.all(
+                              color: _isSatellite
+                                  ? AppColors.accentCyan.withOpacity(0.7)
+                                  : AppColors.textSecondary.withOpacity(0.4),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _isSatellite ? Icons.satellite_alt_rounded : Icons.map_rounded,
+                                color: _isSatellite ? AppColors.accentCyan : AppColors.textPrimary,
+                                size: 15,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _isSatellite ? 'Satélite' : 'Mapa',
+                                style: TextStyle(
+                                  color: _isSatellite ? AppColors.accentCyan : AppColors.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
 
                     // FAB anclado al área del mapa — nunca solapa el panel
@@ -683,7 +734,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     if (kDebugMode)
                       Positioned(
                         left:   16,
-                        bottom: 16,
+                        bottom: 68,
                         child: Tooltip(
                           message: 'DEBUG: Simular GPS ok',
                           child: FloatingActionButton.small(

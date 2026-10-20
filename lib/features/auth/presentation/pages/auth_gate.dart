@@ -69,15 +69,17 @@ class _AuthLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // On web the HTML splash screen handles the loading UI.
-    // Return a plain dark background so the HTML fade-out is seamless.
+    // Return a matching background so the HTML fade-out is seamless.
     if (kIsWeb) {
-      return const Scaffold(backgroundColor: AppColors.backgroundDark);
+      return Scaffold(backgroundColor: Theme.of(context).scaffoldBackgroundColor);
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
+        decoration: BoxDecoration(
+          gradient: isDark ? const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
@@ -86,7 +88,7 @@ class _AuthLoading extends StatelessWidget {
               AppColors.backgroundDark,
             ],
             stops: [0.0, 0.55, 1.0],
-          ),
+          ) : null,
         ),
         child: Center(
           child: Column(
@@ -104,10 +106,10 @@ class _AuthLoading extends StatelessWidget {
                     color: AppColors.accentCyan, size: 32),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Consola del Tesoro',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),

@@ -103,48 +103,47 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final xpInLevel = _xp % 1000;
     const xpNext = 1000;
 
-    return Theme(
-      data: AppTheme.dark,
-      child: Scaffold(
-      backgroundColor: AppColors.backgroundDark,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          foregroundColor: AppColors.textPrimary,
-          iconTheme: const IconThemeData(color: AppColors.textPrimary),
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
-              ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: isDark ? Colors.transparent : null,
+        elevation: 0,
+        foregroundColor: isDark ? AppColors.textPrimary : null,
+        iconTheme: isDark ? const IconThemeData(color: AppColors.textPrimary) : null,
+        flexibleSpace: isDark ? Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Container(
-                  height: 1.5,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.accentCyan.withOpacity(0.7),
-                        AppColors.accentCyan.withOpacity(0.0),
-                      ],
-                    ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                height: 1.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.accentCyan.withOpacity(0.7),
+                      AppColors.accentCyan.withOpacity(0.0),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          title: const Text(
-            'Perfil público',
-            style: TextStyle(
-              color: AppColors.accentCyan,
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-            ),
+        ) : null,
+        title: Text(
+          'Perfil público',
+          style: TextStyle(
+            color: isDark ? AppColors.accentCyan : null,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
           ),
+        ),
           actions: [
           if (isMe)
             TextButton.icon(
@@ -203,7 +202,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                           'Tesoros Conquistados',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
+                                color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                               ),
                         ),
                         const SizedBox(height: 10),
@@ -220,7 +219,6 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                     ),
                   ),
       ),
-    ),
     );
   }
 
@@ -265,9 +263,9 @@ class _AdventurerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final url = avatarUrl?.trim();
     return Card(
-      color: AppColors.cardDark,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         decoration: BoxDecoration(
@@ -329,8 +327,8 @@ class _AdventurerCard extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         username,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
                         ),
@@ -408,7 +406,7 @@ class _AdventurerCard extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: xpNext <= 0 ? 0 : (xpInLevel / xpNext).clamp(0, 1),
                           minHeight: 10,
-                          backgroundColor: AppColors.backgroundDark.withOpacity(0.55),
+                          backgroundColor: (isDark ? AppColors.backgroundDark : Colors.black12).withOpacity(0.55),
                           valueColor: AlwaysStoppedAnimation<Color>(
                               AppColors.accentCyan.withOpacity(0.95)),
                         ),
@@ -422,9 +420,9 @@ class _AdventurerCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.backgroundDark.withOpacity(0.55),
+                color: isDark ? AppColors.backgroundDark.withOpacity(0.55) : Colors.black.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF30363D)),
+                border: Border.all(color: isDark ? const Color(0xFF30363D) : const Color(0xFFE5E7EB)),
               ),
               child: Row(
                 children: const [
@@ -503,18 +501,19 @@ class _Stamp extends StatelessWidget {
     final angle = (index.isEven ? -1 : 1) * 0.012;
     final accent = traveler ? AppColors.accentCyan : AppColors.accentGold;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Transform.rotate(
       angle: angle,
       child: Container(
         width: 164,
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
         decoration: BoxDecoration(
-          color: AppColors.cardDark,
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: accent.withOpacity(0.35), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.10),
               blurRadius: 10,
               offset: const Offset(0, 6),
             ),
@@ -532,8 +531,8 @@ class _Stamp extends StatelessWidget {
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                       fontWeight: FontWeight.w900,
                       fontSize: 13,
                       height: 1.15,
@@ -648,14 +647,16 @@ class _HintCard extends StatelessWidget {
               color: AppColors.accentGold, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: Builder(builder: (ctx) => Text(
               message,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: Theme.of(ctx).brightness == Brightness.dark
+                    ? AppColors.textPrimary
+                    : AppColors.textPrimaryLight,
                 height: 1.35,
                 fontWeight: FontWeight.w600,
               ),
-            ),
+            )),
           ),
         ],
       ),

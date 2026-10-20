@@ -87,14 +87,15 @@ class _HuntListScreenState extends State<HuntListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark ? Colors.transparent : null,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        flexibleSpace: Container(
+        foregroundColor: isDark ? AppColors.textPrimary : null,
+        iconTheme: isDark ? const IconThemeData(color: AppColors.textPrimary) : null,
+        flexibleSpace: isDark ? Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -102,8 +103,8 @@ class _HuntListScreenState extends State<HuntListScreen> {
               colors: [AppColors.surfaceDark, Color(0xFF0C1220)],
             ),
           ),
-        ),
-        bottom: PreferredSize(
+        ) : null,
+        bottom: isDark ? PreferredSize(
           preferredSize: const Size.fromHeight(1.5),
           child: Container(
             height: 1.5,
@@ -117,11 +118,11 @@ class _HuntListScreenState extends State<HuntListScreen> {
               ),
             ),
           ),
-        ),
+        ) : null,
         title: Text(
           widget.region,
-          style: const TextStyle(
-            color: AppColors.accentCyan,
+          style: TextStyle(
+            color: isDark ? AppColors.accentCyan : null,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
@@ -130,7 +131,7 @@ class _HuntListScreenState extends State<HuntListScreen> {
           IconButton(
             tooltip: 'Actualizar',
             onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            icon: Icon(Icons.refresh_rounded, color: isDark ? AppColors.textPrimary : null),
           ),
         ],
       ),
@@ -158,7 +159,7 @@ class _HuntListScreenState extends State<HuntListScreen> {
       isDismissible: false,
       enableDrag: false,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -271,6 +272,7 @@ class _HuntCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final diff = hunt.difficulty;
     final (label, color, icon) = switch (diff) {
       'easy' => ('Fácil', AppColors.success, Icons.sentiment_satisfied_rounded),
@@ -285,11 +287,11 @@ class _HuntCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(color: color.withOpacity(0.20), blurRadius: 20, offset: const Offset(0, 6)),
-            const BoxShadow(color: Color(0x55000000), blurRadius: 8, offset: Offset(0, 2)),
+            BoxShadow(color: Colors.black.withOpacity(isDark ? 0.33 : 0.10), blurRadius: 8, offset: const Offset(0, 2)),
           ],
         ),
         child: Material(
-          color: AppColors.cardDark,
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: onTap,
@@ -329,8 +331,8 @@ class _HuntCard extends StatelessWidget {
                                   children: [
                                     Text(
                                       hunt.title,
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 16,
                                       ),
@@ -429,6 +431,7 @@ class _DraftHuntCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final title = (data['title'] as String?) ?? 'Próximo Tesoro';
     final desc  = (data['description'] as String?) ?? '';
     final diff  = (data['difficulty'] as String?) ?? 'medium';
@@ -444,7 +447,7 @@ class _DraftHuntCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.accentGold.withOpacity(0.20), width: 1),
         ),
@@ -469,7 +472,7 @@ class _DraftHuntCard extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color: AppColors.textPrimary.withOpacity(0.65),
+                        color: (isDark ? AppColors.textPrimary : AppColors.textPrimaryLight).withOpacity(0.65),
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
@@ -560,6 +563,7 @@ class _CompletedHuntCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final diff  = (data['difficulty'] as String?) ?? 'medium';
     final title = (data['title'] as String?) ?? 'Tesoro';
     final desc  = (data['description'] as String?) ?? '';
@@ -574,7 +578,7 @@ class _CompletedHuntCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.textSecondary.withOpacity(0.10), width: 1),
         ),
@@ -789,15 +793,18 @@ class _RuleRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
-                ),
-              ),
+              Builder(builder: (ctx) {
+                final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                return Text(
+                  title,
+                  style: TextStyle(
+                    color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                );
+              }),
               const SizedBox(height: 3),
               Text(
                 body,

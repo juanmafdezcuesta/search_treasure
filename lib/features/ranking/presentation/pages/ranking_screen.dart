@@ -97,16 +97,15 @@ class _RankingScreenState extends State<RankingScreen> {
     final sorted = [...filtered]
       ..sort((a, b) => _readTotalHunts(b).compareTo(_readTotalHunts(a)));
 
-    return Theme(
-      data: AppTheme.dark,
-      child: Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark ? Colors.transparent : null,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        flexibleSpace: Container(
+        foregroundColor: isDark ? AppColors.textPrimary : null,
+        iconTheme: isDark ? const IconThemeData(color: AppColors.textPrimary) : null,
+        flexibleSpace: isDark ? Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -130,17 +129,17 @@ class _RankingScreenState extends State<RankingScreen> {
               ),
             ],
           ),
-        ),
-        title: const Text('Ranking',
+        ) : null,
+        title: Text('Ranking',
             style: TextStyle(
-                color: AppColors.accentCyan,
+                color: isDark ? AppColors.accentCyan : null,
                 fontWeight: FontWeight.w700,
                 fontSize: 18)),
         actions: [
           IconButton(
             tooltip: 'Actualizar',
             onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            icon: Icon(Icons.refresh_rounded, color: isDark ? AppColors.textPrimary : null),
           ),
         ],
       ),
@@ -246,8 +245,7 @@ class _RankingScreenState extends State<RankingScreen> {
                     ),
                   ],
                 ),
-      ), // Scaffold
-    ); // Theme
+    );
   }
 
   List<Map<String, dynamic>> _applyFilter(
@@ -288,22 +286,23 @@ class _FilterToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final selected = filter == _RankFilter.nacional ? 0 : 1;
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF30363D)),
+        border: Border.all(color: isDark ? const Color(0xFF30363D) : const Color(0xFFE5E7EB)),
       ),
       child: ToggleButtons(
         isSelected: [selected == 0, selected == 1],
         onPressed: (i) => onChange(i == 0 ? _RankFilter.nacional : _RankFilter.miComunidad),
         borderRadius: BorderRadius.circular(14),
         constraints: const BoxConstraints(minHeight: 44, minWidth: 150),
-        selectedColor: AppColors.backgroundDark,
+        selectedColor: isDark ? AppColors.backgroundDark : Colors.white,
         fillColor: AppColors.accentCyan,
-        color: AppColors.textPrimary,
+        color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
         borderColor: Colors.transparent,
         selectedBorderColor: Colors.transparent,
         children: const [
@@ -340,14 +339,14 @@ class _HintCard extends StatelessWidget {
           const Icon(Icons.info_outline_rounded, color: AppColors.accentGold, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: Builder(builder: (ctx) => Text(
               message,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: Theme.of(ctx).brightness == Brightness.dark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                 height: 1.35,
                 fontWeight: FontWeight.w600,
               ),
-            ),
+            )),
           ),
         ],
       ),
@@ -374,6 +373,8 @@ class _PodiumTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final (label, color) = switch (place) {
       1 => ('Oro', AppColors.accentGold),
       2 => ('Plata', const Color(0xFFC0C0C0)),
@@ -381,7 +382,6 @@ class _PodiumTile extends StatelessWidget {
     };
 
     return Card(
-      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 10),
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -392,7 +392,7 @@ class _PodiumTile extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               color.withOpacity(0.18),
-              AppColors.cardDark,
+              cardColor,
             ],
           ),
           border: Border.all(color: color.withOpacity(0.38)),
@@ -424,8 +424,8 @@ class _PodiumTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           username,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),
@@ -515,8 +515,8 @@ class _RankTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
-      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -536,8 +536,8 @@ class _RankTile extends StatelessWidget {
                 children: [
                   Text(
                     '$place. $username',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                       fontWeight: FontWeight.w800,
                     ),
                     overflow: TextOverflow.ellipsis,

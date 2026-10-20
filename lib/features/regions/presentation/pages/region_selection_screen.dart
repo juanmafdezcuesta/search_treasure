@@ -66,14 +66,15 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
   Widget build(BuildContext context) {
     final regions = _countsLoaded ? _sortedRegions : _regions;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark ? Colors.transparent : null,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        flexibleSpace: Container(
+        foregroundColor: isDark ? AppColors.textPrimary : null,
+        iconTheme: isDark ? const IconThemeData(color: AppColors.textPrimary) : null,
+        flexibleSpace: isDark ? Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -97,11 +98,11 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
               ),
             ],
           ),
-        ),
-        title: const Text(
+        ) : null,
+        title: Text(
           'Elige una región',
           style: TextStyle(
-            color: AppColors.accentCyan,
+            color: isDark ? AppColors.accentCyan : null,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
@@ -109,7 +110,7 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
         actions: [
           IconButton(
             tooltip: 'Ranking',
-            icon: const Icon(Icons.leaderboard_rounded, color: AppColors.textPrimary),
+            icon: Icon(Icons.leaderboard_rounded, color: isDark ? AppColors.textPrimary : null),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const RankingScreen()),
@@ -117,7 +118,7 @@ class _RegionSelectionScreenState extends State<RegionSelectionScreen> {
           ),
           IconButton(
             tooltip: 'Mi perfil',
-            icon: const Icon(Icons.person_rounded, color: AppColors.textPrimary),
+            icon: Icon(Icons.person_rounded, color: isDark ? AppColors.textPrimary : null),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
