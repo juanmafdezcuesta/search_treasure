@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:consola_tesoro/core/session/app_session.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
 import 'package:consola_tesoro/features/auth/presentation/pages/email_confirmation_screen.dart';
 
@@ -52,11 +53,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final maxDate = DateTime(now.year - 16, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
-      initialDate: _birthDate ?? DateTime(2000),
+      initialDate: _birthDate ?? DateTime(now.year - 18, now.month, now.day),
       firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      lastDate: maxDate,
       helpText: 'FECHA DE NACIMIENTO',
       confirmText: 'CONFIRMAR',
       cancelText: 'CANCELAR',
@@ -137,8 +140,9 @@ class _LoginScreenState extends State<LoginScreen> {
           email: email,
           password: password,
           data: {
-            'username':   alias.isNotEmpty ? alias : email.split('@').first,
-            'birth_date': birthIso,
+            'username':      alias.isNotEmpty ? alias : email.split('@').first,
+            'birth_date':    birthIso,
+            'origin_region': _registerRegion,
           },
         );
         if (!mounted) return;
@@ -160,6 +164,9 @@ class _LoginScreenState extends State<LoginScreen> {
             'origin_region': _registerRegion,
             'birth_date':    birthIso,
           });
+          // Refresca la sesión después del upsert para que origin_region
+          // esté en AppSession aunque onAuthStateChange haya corrido antes.
+          await AppSession.refreshProfile(_client, userId: res.user!.id);
         }
       } else {
         await _client.auth.signInWithPassword(email: email, password: password);
@@ -283,7 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 autofillHints: const [AutofillHints.email],
                                 textInputAction: TextInputAction.next,
                                 enabled: !_loading,
-                                style: const TextStyle(color: AppColors.textPrimary),
+                                style: TextStyle(color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight),
                                 decoration: const InputDecoration(
                                   labelText: 'Email',
                                   hintText: 'tu@email.com',
@@ -305,7 +312,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     : const [AutofillHints.password],
                                 textInputAction: TextInputAction.done,
                                 enabled: !_loading,
-                                style: const TextStyle(color: AppColors.textPrimary),
+                                style: TextStyle(color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight),
                                 decoration: InputDecoration(
                                   labelText: 'Contraseña',
                                   hintText: _isRegister ? 'Mínimo 6 caracteres' : 'Tu contraseña',
@@ -336,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 TextFormField(
                                   controller: _aliasCtrl,
                                   enabled: !_loading,
-                                  style: const TextStyle(color: AppColors.textPrimary),
+                                  style: TextStyle(color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight),
                                   decoration: const InputDecoration(
                                     labelText: 'Alias o Nombre del Equipo',
                                     hintText: 'Sin espacios · aparecerá en el ranking',
@@ -389,8 +396,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                             '${_birthDate!.day.toString().padLeft(2, '0')} / '
                                             '${_birthDate!.month.toString().padLeft(2, '0')} / '
                                             '${_birthDate!.year}',
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
+                                            style: TextStyle(
+                                              color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                                               fontSize: 16,
                                             ),
                                           ),
@@ -491,7 +498,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 label: const Text('Jugar como invitado'),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size(double.infinity, 52),
-                                  foregroundColor: AppColors.textPrimary,
+                                  foregroundColor: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                                   side: BorderSide(color: AppColors.accentCyan.withOpacity(0.55)),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 ),
@@ -545,6 +552,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -566,7 +574,7 @@ class _Header extends StatelessWidget {
                 'Consola del Tesoro',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                     ),
               ),
             ),
@@ -584,7 +592,7 @@ class _Header extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           title,
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28, color: AppColors.textPrimary),
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28, color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight),
         ),
         const SizedBox(height: 6),
         Text(

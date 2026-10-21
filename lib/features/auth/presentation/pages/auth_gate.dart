@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:consola_tesoro/core/session/app_session.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
-import 'package:consola_tesoro/features/auth/presentation/pages/login_screen.dart';
+import 'package:consola_tesoro/features/auth/presentation/pages/welcome_screen.dart';
 import 'package:consola_tesoro/features/regions/presentation/pages/region_selection_screen.dart';
 
 class AuthGate extends StatefulWidget {
@@ -59,7 +59,7 @@ class _AuthGateState extends State<AuthGate> {
     if (_bootstrapping) {
       return const _AuthLoading();
     }
-    return _session == null ? const LoginScreen() : const RegionSelectionScreen();
+    return _session == null ? const WelcomeScreen() : const RegionSelectionScreen();
   }
 }
 

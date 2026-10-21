@@ -9,7 +9,7 @@ import 'features/auth/presentation/pages/auth_gate.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final env = await EnvConfig.load();
+  final env = EnvConfig.load();
   await Supabase.initialize(
     url: env.supabaseUrl,
     anonKey: env.supabaseAnonKey,

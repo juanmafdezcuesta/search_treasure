@@ -9,6 +9,7 @@ enum ClueActionState {
   checkingGps,
   tooFar,
   gpsValidated,
+  autoValidating,
   uploading,
   submitted,
 }
@@ -25,6 +26,7 @@ class ClueBottomPanel extends StatelessWidget {
   final String? hintText;
   final bool hintLoading;
   final VoidCallback? onUnlockHint;
+  final bool isFinalClue;
 
   const ClueBottomPanel({
     super.key,
@@ -39,6 +41,7 @@ class ClueBottomPanel extends StatelessWidget {
     this.hintText,
     this.hintLoading = false,
     this.onUnlockHint,
+    this.isFinalClue = true,
   });
 
   @override
@@ -285,7 +288,7 @@ class ClueBottomPanel extends StatelessWidget {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '¡Ubicación confirmada! Toma una foto como prueba.',
+                      '¡Última pista! Toma la foto de victoria como prueba.',
                       style: TextStyle(
                         color: AppColors.success,
                         fontSize: 13,
@@ -310,11 +313,20 @@ class ClueBottomPanel extends StatelessWidget {
             _GradientButton(
               onPressed: onTakePhoto,
               icon: Icons.camera_alt_rounded,
-              label: 'Tomar foto de prueba',
+              label: 'Tomar foto de victoria',
               colors: [AppColors.accentGold, AppColors.accentCoral],
             ).animate().slideY(begin: 0.4, duration: 350.ms, curve: Curves.easeOut).fadeIn(duration: 300.ms),
           ],
         );
+
+      case ClueActionState.autoValidating:
+        return _GradientButton(
+          onPressed: null,
+          icon: null,
+          label: '¡Pista superada! Cargando la siguiente...',
+          colors: [AppColors.success, const Color(0xFF00C853)],
+          loading: true,
+        ).animate().fadeIn(duration: 250.ms);
 
       case ClueActionState.uploading:
         return _GradientButton(

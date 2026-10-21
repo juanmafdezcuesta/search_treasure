@@ -42,8 +42,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   String?     _dataError;
 
   // ── Estado del jugador ────────────────────────────────────────────────────
-  LatLng? _playerPosition;
-  bool    _locationLoading = false;
+  LatLng?   _playerPosition;
+  Position? _lastPosition;      // posición completa del stream (incluye isMocked)
+  bool      _locationLoading = false;
+  StreamSubscription<Position>? _posStream;
 
   // ── Estado del panel de acción ────────────────────────────────────────────
   ClueActionState _actionState = ClueActionState.idle;
@@ -122,6 +124,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _posStream?.cancel();
     _stopPolling();
     _shakeController.dispose();
     _confettiController.dispose();
@@ -202,22 +205,65 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _initLocation() async {
     setState(() => _locationLoading = true);
-    final permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      setState(() => _locationLoading = false);
-      _showSnack('Necesitamos acceso a tu ubicación para jugar.',
-          color: AppColors.accentCoral);
-      return;
+
+    try {
+      final permission = await Geolocator.requestPermission();
+      if (!mounted) return;
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showSnack('Necesitamos acceso a tu ubicación para jugar.',
+            color: AppColors.accentCoral);
+        return;
+      }
+
+      // 1. Caché instantáneo (puede ser null si nunca hubo fix previo)
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null && mounted) {
+          setState(() {
+            _lastPosition   = last;
+            _playerPosition = LatLng(last.latitude, last.longitude);
+          });
+          _mapController.move(_playerPosition!, 15.0);
+        }
+      } catch (_) {}
+
+      // 2. Fix rápido de red/WiFi (típicamente 1-3 s, sin satélite)
+      //    Centra el mapa si aún no hay posición.
+      try {
+        final quick = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+        ).timeout(const Duration(seconds: 8));
+        if (mounted) {
+          final wasNull = _playerPosition == null;
+          setState(() {
+            _lastPosition   = quick;
+            _playerPosition = LatLng(quick.latitude, quick.longitude);
+          });
+          if (wasNull) _mapController.move(_playerPosition!, 15.0);
+        }
+      } catch (_) {}
+    } finally {
+      // El spinner SIEMPRE para, pase lo que pase
+      if (mounted) setState(() => _locationLoading = false);
     }
-    final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    if (!mounted) return;
-    setState(() {
-      _playerPosition  = LatLng(pos.latitude, pos.longitude);
-      _locationLoading = false;
+
+    // 3. Stream de alta precisión: actualiza el marcador mientras el usuario
+    //    se mueve. distanceFilter 0 dispara en el primer fix de satélite.
+    _posStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+      ),
+    ).listen((pos) {
+      if (!mounted) return;
+      final wasNull = _playerPosition == null;
+      setState(() {
+        _lastPosition   = pos;
+        _playerPosition = LatLng(pos.latitude, pos.longitude);
+      });
+      if (wasNull) _mapController.move(_playerPosition!, 15.0);
     });
-    _mapController.move(_playerPosition!, 15.0);
   }
 
   Future<void> _centerOnPlayer() async {
@@ -256,12 +302,42 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     });
     HapticFeedback.mediumImpact();
 
+    // Usar la posición del stream continuo (sin bloquear)
+    final freshPos = _lastPosition;
+    if (freshPos == null) {
+      if (!mounted) return;
+      setState(() => _actionState = ClueActionState.idle);
+      _showSnack('Esperando señal GPS... sal al exterior.',
+          color: AppColors.accentCoral);
+      return;
+    }
+
+    // Rechazar posición si tiene más de 30 s de antigüedad
+    final posAge = DateTime.now().difference(freshPos.timestamp);
+    if (posAge > const Duration(seconds: 30)) {
+      if (!mounted) return;
+      setState(() => _actionState = ClueActionState.idle);
+      _showSnack('Señal GPS débil. Espera un momento e inténtalo de nuevo.',
+          color: AppColors.accentCoral);
+      return;
+    }
+
+    if (freshPos.isMocked) {
+      if (!mounted) return;
+      setState(() => _actionState = ClueActionState.idle);
+      _showSnack(
+        '🚨 Dispositivo de rastreo alterado. Apaga el Fake GPS para continuar la expedición.',
+        color: AppColors.error,
+      );
+      return;
+    }
+
     bool isNear = false;
     try {
       final result = await _supabase.rpc('check_proximity', params: {
         'p_clue_id': _activeClue!.clueId,
-        'p_lat':     _playerPosition!.latitude,
-        'p_lng':     _playerPosition!.longitude,
+        'p_lat':     freshPos.latitude,
+        'p_lng':     freshPos.longitude,
       }).timeout(const Duration(seconds: 10));
       isNear = result as bool;
     } on TimeoutException {
@@ -278,11 +354,39 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     if (!mounted) return;
     if (isNear) {
-      setState(() => _actionState = ClueActionState.gpsValidated);
       HapticFeedback.heavyImpact();
       _awardClueXp();
+      final isFinal = _activeClue!.stepOrder == _totalSteps;
+      if (isFinal) {
+        setState(() => _actionState = ClueActionState.gpsValidated);
+      } else {
+        setState(() => _actionState = ClueActionState.autoValidating);
+        _autoValidateAndAdvance();
+      }
     } else {
       _onGpsFail();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Auto-validación de pistas intermedias (sin foto ni aprobación de admin)
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<void> _autoValidateAndAdvance() async {
+    if (_activeClue == null) return;
+    try {
+      await _huntDS.autoValidateClue(_activeClue!.clueId);
+      if (!mounted) return;
+      _confettiController.play();
+      HapticFeedback.heavyImpact();
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) await _loadNextClue();
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      setState(() => _actionState = ClueActionState.idle);
+      _showSnack('Error al avanzar: ${e.message}', color: AppColors.error);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _actionState = ClueActionState.idle);
     }
   }
 
@@ -775,6 +879,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                 hintText:       _hintText,
                                 hintLoading:    _hintLoading,
                                 onUnlockHint:   _onUnlockHint,
+                                isFinalClue:    _activeClue!.stepOrder == _totalSteps,
                               ).animate()
                                   .slideY(begin: 0.3, duration: 400.ms,
                                           curve: Curves.easeOut)

@@ -156,6 +156,11 @@ class HuntDatasource {
     });
   }
 
+  // ── Auto-validación de pistas intermedias (sin foto) ─────────────────────────
+  Future<void> autoValidateClue(String clueId) async {
+    await _client.rpc('auto_validate_clue', params: {'p_clue_id': clueId});
+  }
+
   // ── Estado del progreso de una pista (para polling post-foto) ────────────────
   Future<String?> checkProgressStatus({
     required String userId,
