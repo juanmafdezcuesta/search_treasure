@@ -9,6 +9,8 @@ class Hunt {
   final double avgRating;
   final int ratingCount;
   final bool isSpecial;
+  final DateTime? startsAt;
+  final DateTime? endsAt;
 
   const Hunt({
     required this.id,
@@ -21,6 +23,8 @@ class Hunt {
     required this.avgRating,
     required this.ratingCount,
     this.isSpecial = false,
+    this.startsAt,
+    this.endsAt,
   });
 
   factory Hunt.fromMap(Map<String, dynamic> m) {
@@ -35,6 +39,8 @@ class Hunt {
       avgRating: (m['avg_rating'] as num?)?.toDouble() ?? 0.0,
       ratingCount: (m['rating_count'] as num?)?.toInt() ?? 0,
       isSpecial: (m['is_special'] as bool?) ?? false,
+      startsAt: m['starts_at'] != null ? DateTime.parse(m['starts_at'] as String) : null,
+      endsAt:   m['ends_at']   != null ? DateTime.parse(m['ends_at']   as String) : null,
     );
   }
 }

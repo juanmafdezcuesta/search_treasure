@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -5,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:consola_tesoro/core/models/hunt.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
 import 'package:consola_tesoro/data/datasources/supabase/hunt_datasource.dart';
+import 'package:consola_tesoro/features/hunts/presentation/widgets/hunt_countdown_timer.dart';
 import 'package:consola_tesoro/features/map/presentation/pages/map_screen.dart';
 
 class HuntListScreen extends StatefulWidget {
@@ -265,24 +268,62 @@ class _SectionLabel extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-class _HuntCard extends StatelessWidget {
+class _HuntCard extends StatefulWidget {
   final Hunt hunt;
   final VoidCallback onTap;
   const _HuntCard({required this.hunt, required this.onTap});
 
   @override
+  State<_HuntCard> createState() => _HuntCardState();
+}
+
+class _HuntCardState extends State<_HuntCard> {
+  Timer? _timer;
+
+  bool get _hasTemporal =>
+      widget.hunt.startsAt != null || widget.hunt.endsAt != null;
+
+  bool get _isPlayable {
+    final now = DateTime.now();
+    if (widget.hunt.startsAt != null && widget.hunt.startsAt!.isAfter(now)) return false;
+    if (widget.hunt.endsAt   != null && widget.hunt.endsAt!.isBefore(now))  return false;
+    return true;
+  }
+
+  bool get _isPending {
+    final now = DateTime.now();
+    return widget.hunt.startsAt != null && widget.hunt.startsAt!.isAfter(now);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (_hasTemporal) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final diff = hunt.difficulty;
+    final diff = widget.hunt.difficulty;
     final (label, color, icon) = switch (diff) {
       'easy' => ('Fácil', AppColors.success, Icons.sentiment_satisfied_rounded),
       'hard' => ('Difícil', AppColors.accentCoral, Icons.local_fire_department_rounded),
       _ => ('Media', AppColors.accentCyan, Icons.explore_rounded),
     };
-    final stripeColor = hunt.isSpecial ? AppColors.accentGold : color;
+    final stripeColor = widget.hunt.isSpecial ? AppColors.accentGold : color;
 
     Widget card = Padding(
-      padding: EdgeInsets.only(top: hunt.isSpecial ? 10 : 0, bottom: 12),
+      padding: EdgeInsets.only(top: widget.hunt.isSpecial ? 10 : 0, bottom: 12),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -290,7 +331,7 @@ class _HuntCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
-                if (hunt.isSpecial)
+                if (widget.hunt.isSpecial)
                   BoxShadow(
                     color: AppColors.accentGold.withOpacity(0.32),
                     blurRadius: 26,
@@ -305,7 +346,7 @@ class _HuntCard extends StatelessWidget {
               color: isDark ? AppColors.cardDark : AppColors.cardLight,
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
-                onTap: onTap,
+                onTap: _isPlayable ? widget.onTap : null,
                 borderRadius: BorderRadius.circular(16),
                 splashColor: stripeColor.withOpacity(0.12),
                 highlightColor: stripeColor.withOpacity(0.06),
@@ -313,10 +354,10 @@ class _HuntCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: hunt.isSpecial
+                      color: widget.hunt.isSpecial
                           ? AppColors.accentGold.withOpacity(0.65)
                           : color.withOpacity(0.30),
-                      width: hunt.isSpecial ? 1.5 : 1,
+                      width: widget.hunt.isSpecial ? 1.5 : 1,
                     ),
                   ),
                   child: ClipRRect(
@@ -339,7 +380,7 @@ class _HuntCard extends StatelessWidget {
                                       border: Border.all(color: stripeColor.withOpacity(0.35)),
                                     ),
                                     child: Icon(
-                                      hunt.isSpecial ? Icons.star_rounded : icon,
+                                      widget.hunt.isSpecial ? Icons.star_rounded : icon,
                                       color: stripeColor,
                                     ),
                                   ),
@@ -349,17 +390,17 @@ class _HuntCard extends StatelessWidget {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          hunt.title,
+                                          widget.hunt.title,
                                           style: TextStyle(
                                             color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 16,
                                           ),
                                         ),
-                                        if ((hunt.description ?? '').trim().isNotEmpty) ...[
+                                        if ((widget.hunt.description ?? '').trim().isNotEmpty) ...[
                                           const SizedBox(height: 4),
                                           Text(
-                                            hunt.description!,
+                                            widget.hunt.description!,
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
@@ -368,7 +409,7 @@ class _HuntCard extends StatelessWidget {
                                             ),
                                           ),
                                         ],
-                                        if ((hunt.rewardInfo ?? '').trim().isNotEmpty) ...[
+                                        if ((widget.hunt.rewardInfo ?? '').trim().isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           Align(
                                             alignment: Alignment.centerLeft,
@@ -386,7 +427,7 @@ class _HuntCard extends StatelessWidget {
                                                       color: AppColors.accentGold, size: 15),
                                                   const SizedBox(width: 6),
                                                   Text(
-                                                    hunt.rewardInfo!,
+                                                    widget.hunt.rewardInfo!,
                                                     style: const TextStyle(
                                                       color: AppColors.accentGold,
                                                       fontSize: 13,
@@ -418,12 +459,31 @@ class _HuntCard extends StatelessWidget {
                                               ),
                                             ),
                                             const SizedBox(width: 10),
-                                            Text('Entrar',
-                                                style: TextStyle(
-                                                    color: stripeColor, fontWeight: FontWeight.w700)),
-                                            Icon(Icons.chevron_right_rounded, color: stripeColor),
+                                            if (_isPlayable) ...[
+                                              Text('Entrar',
+                                                  style: TextStyle(
+                                                      color: stripeColor,
+                                                      fontWeight: FontWeight.w700)),
+                                              Icon(Icons.chevron_right_rounded, color: stripeColor),
+                                            ] else ...[
+                                              Text(
+                                                _isPending ? 'Bloqueado' : 'Finalizado',
+                                                style: const TextStyle(
+                                                    color: AppColors.textSecondary,
+                                                    fontWeight: FontWeight.w700),
+                                              ),
+                                              const Icon(Icons.lock_rounded,
+                                                  color: AppColors.textSecondary, size: 16),
+                                            ],
                                           ],
                                         ),
+                                        if (_hasTemporal) ...[
+                                          const SizedBox(height: 6),
+                                          HuntCountdownTimer(
+                                            startsAt: widget.hunt.startsAt,
+                                            endsAt: widget.hunt.endsAt,
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -441,7 +501,7 @@ class _HuntCard extends StatelessWidget {
           ),
 
           // Badge "EVENTO ESPECIAL"
-          if (hunt.isSpecial)
+          if (widget.hunt.isSpecial)
             Positioned(
               top: -8,
               right: 14,
@@ -480,7 +540,7 @@ class _HuntCard extends StatelessWidget {
       ),
     );
 
-    if (hunt.isSpecial) {
+    if (widget.hunt.isSpecial) {
       card = card
           .animate(onPlay: (c) => c.repeat(reverse: true))
           .shimmer(

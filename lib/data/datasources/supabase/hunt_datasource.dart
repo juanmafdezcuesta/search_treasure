@@ -52,7 +52,7 @@ class HuntDatasource {
   Future<List<Hunt>> listActiveHunts({required String region}) async {
     final rows = await _client
         .from('hunts')
-        .select('id, title, description, difficulty, reward_info, region, status, is_special')
+        .select('id, title, description, difficulty, reward_info, region, status, is_special, starts_at, ends_at')
         .eq('status', 'active')
         .eq('region', region)
         .order('created_at');
