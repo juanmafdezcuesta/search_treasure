@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – RPC: unirse a un hunt + reset de progreso
+-- Búsqueda del Tesoro – RPC: unirse a un hunt + reset de progreso
 -- =============================================================
 
 -- -------------------------------------------------------------

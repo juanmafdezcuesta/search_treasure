@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro — origin_region en trigger de registro
+-- Búsqueda del Tesoro — origin_region en trigger de registro
 -- =============================================================
 -- Al pasar 'origin_region' en el campo data de signUp en Flutter,
 -- llega aquí como raw_user_meta_data->>'origin_region'.

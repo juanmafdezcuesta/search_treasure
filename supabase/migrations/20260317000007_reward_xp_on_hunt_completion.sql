@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – Recompensa XP al completar un tesoro
+-- Búsqueda del Tesoro – Recompensa XP al completar un tesoro
 -- =============================================================
 -- Regla: al completar el ÚLTIMO paso de un hunt (al aprobar la última pista),
 -- se suman +500 XP al perfil del usuario.

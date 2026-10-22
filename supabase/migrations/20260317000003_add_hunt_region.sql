@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – Hunts por región
+-- Búsqueda del Tesoro – Hunts por región
 -- =============================================================
 
 ALTER TABLE public.hunts

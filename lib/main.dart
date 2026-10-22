@@ -29,7 +29,7 @@ class ConsolaTesoro extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: AppSession.themeMode,
       builder: (_, mode, __) => MaterialApp(
-        title:                    'Consola del Tesoro',
+        title:                    'Búsqueda del Tesoro',
         debugShowCheckedModeBanner: false,
         theme:                    AppTheme.light,
         darkTheme:                AppTheme.dark,

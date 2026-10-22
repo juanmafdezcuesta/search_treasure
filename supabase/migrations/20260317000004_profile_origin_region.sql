@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – Perfil: comunidad autónoma de origen
+-- Búsqueda del Tesoro – Perfil: comunidad autónoma de origen
 -- =============================================================
 
 ALTER TABLE public.profiles

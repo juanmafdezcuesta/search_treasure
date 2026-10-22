@@ -713,7 +713,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         ),
         iconTheme: const IconThemeData(color: AppColors.accentCyan),
         title: Text(
-          _huntTitle ?? 'Consola del Tesoro',
+          _huntTitle ?? 'Búsqueda del Tesoro',
           style: const TextStyle(color: AppColors.accentCyan,
               fontWeight: FontWeight.w700, fontSize: 18),
         ),

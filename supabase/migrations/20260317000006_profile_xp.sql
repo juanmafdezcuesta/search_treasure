@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – XP en perfiles
+-- Búsqueda del Tesoro – XP en perfiles
 -- =============================================================
 
 ALTER TABLE public.profiles

@@ -44,6 +44,9 @@ class ValidationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textPrimary : AppColors.textPrimaryLight;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -81,8 +84,8 @@ class ValidationCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(validation.username,
-                          style: const TextStyle(
-                              color: AppColors.textPrimary,
+                          style: TextStyle(
+                              color: textColor,
                               fontWeight: FontWeight.w700,
                               fontSize: 16)),
                       Text(
@@ -121,7 +124,7 @@ class ValidationCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.backgroundDark,
+                color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                     color: AppColors.accentCoral.withOpacity(0.3), width: 1),
@@ -225,10 +228,11 @@ class _PhotoPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 220,
       decoration: BoxDecoration(
-        color: AppColors.backgroundDark,
+        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(

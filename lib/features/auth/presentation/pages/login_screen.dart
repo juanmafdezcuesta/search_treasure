@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         content: const SingleChildScrollView(
           child: Text(
-            'Al participar en Consola del Tesoro, el jugador asume plena responsabilidad de su seguridad física y vial durante la búsqueda. '
+            'Al participar en Búsqueda del Tesoro, el jugador asume plena responsabilidad de su seguridad física y vial durante la búsqueda. '
             'Las actividades tienen lugar en entornos exteriores que pueden presentar riesgos naturales o de tráfico. '
             'Los organizadores no se hacen responsables de accidentes, lesiones, daños materiales ni perjuicios de ningún tipo '
             'derivados de la participación en las pruebas.\n\n'
@@ -571,7 +571,7 @@ class _Header extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Consola del Tesoro',
+                'Búsqueda del Tesoro',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,

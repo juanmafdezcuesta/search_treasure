@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – Fix: perfiles para usuarios anónimos
+-- Búsqueda del Tesoro – Fix: perfiles para usuarios anónimos
 -- =============================================================
 -- En sign-ins anónimos, `auth.users.email` puede venir NULL.
 -- El trigger original intentaba derivar username desde el email,

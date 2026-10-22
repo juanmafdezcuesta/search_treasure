@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro — Sistema de Pistas Extra (Monetización)
+-- Búsqueda del Tesoro — Sistema de Pistas Extra (Monetización)
 -- =============================================================
 -- Añade columnas hint_text / hint_cost a clues,
 -- crea la tabla unlocked_hints con RLS,

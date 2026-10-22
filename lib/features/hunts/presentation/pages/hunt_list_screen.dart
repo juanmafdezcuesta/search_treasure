@@ -279,148 +279,218 @@ class _HuntCard extends StatelessWidget {
       'hard' => ('Difícil', AppColors.accentCoral, Icons.local_fire_department_rounded),
       _ => ('Media', AppColors.accentCyan, Icons.explore_rounded),
     };
+    final stripeColor = hunt.isSpecial ? AppColors.accentGold : color;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: color.withOpacity(0.20), blurRadius: 20, offset: const Offset(0, 6)),
-            BoxShadow(color: Colors.black.withOpacity(isDark ? 0.33 : 0.10), blurRadius: 8, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Material(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
-            splashColor: color.withOpacity(0.12),
-            highlightColor: color.withOpacity(0.06),
-            child: Container(
-              decoration: BoxDecoration(
+    Widget card = Padding(
+      padding: EdgeInsets.only(top: hunt.isSpecial ? 10 : 0, bottom: 12),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                if (hunt.isSpecial)
+                  BoxShadow(
+                    color: AppColors.accentGold.withOpacity(0.32),
+                    blurRadius: 26,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  ),
+                BoxShadow(color: color.withOpacity(0.20), blurRadius: 20, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withOpacity(isDark ? 0.33 : 0.10), blurRadius: 8, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Material(
+              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                onTap: onTap,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: color.withOpacity(0.30), width: 1),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(width: 4, color: color),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 42, height: 42,
-                                decoration: BoxDecoration(
-                                  color: color.withOpacity(0.14),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: color.withOpacity(0.35)),
-                                ),
-                                child: Icon(icon, color: color),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      hunt.title,
-                                      style: TextStyle(
-                                        color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
+                splashColor: stripeColor.withOpacity(0.12),
+                highlightColor: stripeColor.withOpacity(0.06),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: hunt.isSpecial
+                          ? AppColors.accentGold.withOpacity(0.65)
+                          : color.withOpacity(0.30),
+                      width: hunt.isSpecial ? 1.5 : 1,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(width: 4, color: stripeColor),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 42, height: 42,
+                                    decoration: BoxDecoration(
+                                      color: stripeColor.withOpacity(0.14),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: stripeColor.withOpacity(0.35)),
                                     ),
-                                    if ((hunt.description ?? '').trim().isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        hunt.description!,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                          height: 1.25,
-                                        ),
-                                      ),
-                                    ],
-                                    if ((hunt.rewardInfo ?? '').trim().isNotEmpty) ...[
-                                      const SizedBox(height: 8),
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Container(
-                                          padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.accentGold.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(999),
-                                            border: Border.all(color: AppColors.accentGold.withOpacity(0.55)),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.emoji_events_rounded,
-                                                  color: AppColors.accentGold, size: 15),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                hunt.rewardInfo!,
-                                                style: const TextStyle(
-                                                  color: AppColors.accentGold,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 8),
-                                    Row(
+                                    child: Icon(
+                                      hunt.isSpecial ? Icons.star_rounded : icon,
+                                      color: stripeColor,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: color.withOpacity(0.14),
-                                            borderRadius: BorderRadius.circular(999),
-                                            border: Border.all(color: color.withOpacity(0.35)),
+                                        Text(
+                                          hunt.title,
+                                          style: TextStyle(
+                                            color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16,
                                           ),
-                                          child: Text(
-                                            label,
-                                            style: TextStyle(
-                                              color: color,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12,
+                                        ),
+                                        if ((hunt.description ?? '').trim().isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            hunt.description!,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: AppColors.textSecondary,
+                                              height: 1.25,
                                             ),
                                           ),
+                                        ],
+                                        if ((hunt.rewardInfo ?? '').trim().isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Container(
+                                              padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.accentGold.withOpacity(0.15),
+                                                borderRadius: BorderRadius.circular(999),
+                                                border: Border.all(color: AppColors.accentGold.withOpacity(0.55)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.emoji_events_rounded,
+                                                      color: AppColors.accentGold, size: 15),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    hunt.rewardInfo!,
+                                                    style: const TextStyle(
+                                                      color: AppColors.accentGold,
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w800,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: stripeColor.withOpacity(0.14),
+                                                borderRadius: BorderRadius.circular(999),
+                                                border: Border.all(color: stripeColor.withOpacity(0.35)),
+                                              ),
+                                              child: Text(
+                                                label,
+                                                style: TextStyle(
+                                                  color: stripeColor,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text('Entrar',
+                                                style: TextStyle(
+                                                    color: stripeColor, fontWeight: FontWeight.w700)),
+                                            Icon(Icons.chevron_right_rounded, color: stripeColor),
+                                          ],
                                         ),
-                                        const SizedBox(width: 10),
-                                        Text('Entrar',
-                                            style: TextStyle(
-                                                color: color, fontWeight: FontWeight.w700)),
-                                        Icon(Icons.chevron_right_rounded, color: color),
                                       ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+
+          // Badge "EVENTO ESPECIAL"
+          if (hunt.isSpecial)
+            Positioned(
+              top: -8,
+              right: 14,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGold,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.accentGold.withOpacity(0.50),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star_rounded, size: 11, color: AppColors.backgroundDark),
+                    SizedBox(width: 4),
+                    Text(
+                      'EVENTO ESPECIAL',
+                      style: TextStyle(
+                        color: AppColors.backgroundDark,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
+
+    if (hunt.isSpecial) {
+      card = card
+          .animate(onPlay: (c) => c.repeat(reverse: true))
+          .shimmer(
+            duration: 2200.ms,
+            color: AppColors.accentGold.withOpacity(0.16),
+            angle: 0.3,
+          );
+    }
+
+    return card;
   }
 }
 

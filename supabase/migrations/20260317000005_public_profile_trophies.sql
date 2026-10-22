@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – Perfil público: trofeos (solo lectura)
+-- Búsqueda del Tesoro – Perfil público: trofeos (solo lectura)
 -- =============================================================
 -- RLS de user_progress solo permite leer progreso propio (o masters).
 -- Para el "perfil público" exponemos un RPC seguro (SECURITY DEFINER)

@@ -6,8 +6,9 @@ class Hunt {
   final String? rewardInfo;
   final String? region;
   final String status;
-  final double avgRating; // Nueva
-  final int ratingCount;  // Nueva
+  final double avgRating;
+  final int ratingCount;
+  final bool isSpecial;
 
   const Hunt({
     required this.id,
@@ -19,6 +20,7 @@ class Hunt {
     required this.status,
     required this.avgRating,
     required this.ratingCount,
+    this.isSpecial = false,
   });
 
   factory Hunt.fromMap(Map<String, dynamic> m) {
@@ -32,6 +34,7 @@ class Hunt {
       status: (m['status'] as String?) ?? 'active',
       avgRating: (m['avg_rating'] as num?)?.toDouble() ?? 0.0,
       ratingCount: (m['rating_count'] as num?)?.toInt() ?? 0,
+      isSpecial: (m['is_special'] as bool?) ?? false,
     );
   }
 }

@@ -1,4 +1,4 @@
-# La Consola del Tesoro de Avilés
+# Búsqueda del Tesoro
 
 App móvil (Flutter) de **búsqueda del tesoro gamificada** basada en **geolocalización**, con backend en **Supabase**.
 

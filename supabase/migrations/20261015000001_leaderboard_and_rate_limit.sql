@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro — Vista leaderboard + Rate limiting GPS
+-- Búsqueda del Tesoro — Vista leaderboard + Rate limiting GPS
 -- =============================================================
 
 -- ─── 1. Vista leaderboard ────────────────────────────────────────────────────

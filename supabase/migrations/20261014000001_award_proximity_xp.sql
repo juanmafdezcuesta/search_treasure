@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – XP por llegada a cada pista (GPS OK)
+-- Búsqueda del Tesoro – XP por llegada a cada pista (GPS OK)
 -- =============================================================
 -- Regla: al validar la ubicación GPS de una pista se otorga XP inmediato.
 --   Posición 1 → 10 XP, 2 → 9 XP, …, 10 → 1 XP, resto → 1 XP

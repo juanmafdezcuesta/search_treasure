@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:consola_tesoro/core/theme/app_theme.dart';
-import 'package:consola_tesoro/features/auth/presentation/pages/login_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+  final VoidCallback onProceed;
+  const WelcomeScreen({super.key, required this.onProceed});
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +49,7 @@ class WelcomeScreen extends StatelessWidget {
 
               // ── Título ─────────────────────────────────────────────────
               Text(
-                'Consola del Tesoro',
+                'Búsqueda del Tesoro',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: txt,
@@ -73,7 +73,7 @@ class WelcomeScreen extends StatelessWidget {
                 sub: sub,
                 icon: Icons.emoji_events_rounded,
                 color: AppColors.accentGold,
-                title: '¿Qué es Consola del Tesoro?',
+                title: '¿Qué es Búsqueda del Tesoro?',
                 body: 'Una aventura real por las calles de tu ciudad. '
                     'Resuelve acertijos, llega a los puntos GPS y demuestra '
                     'que estuviste allí con una foto. El primer equipo en '
@@ -164,10 +164,7 @@ class WelcomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
-                      onTap: () => Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                            builder: (_) => const LoginScreen()),
-                      ),
+                      onTap: onProceed,
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -194,9 +191,7 @@ class WelcomeScreen extends StatelessWidget {
 
               // ── Ya tengo cuenta ────────────────────────────────────────
               GestureDetector(
-                onTap: () => Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                ),
+                onTap: onProceed,
                 child: Text(
                   'Ya tengo cuenta — Entrar',
                   style: TextStyle(

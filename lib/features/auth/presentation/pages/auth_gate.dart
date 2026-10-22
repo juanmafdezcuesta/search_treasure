@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:consola_tesoro/core/session/app_session.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
+import 'package:consola_tesoro/features/auth/presentation/pages/login_screen.dart';
 import 'package:consola_tesoro/features/auth/presentation/pages/welcome_screen.dart';
 import 'package:consola_tesoro/features/regions/presentation/pages/region_selection_screen.dart';
 
@@ -22,6 +23,7 @@ class _AuthGateState extends State<AuthGate> {
 
   Session? _session;
   bool _bootstrapping = true;
+  bool _showWelcome   = true;
 
   @override
   void initState() {
@@ -59,7 +61,13 @@ class _AuthGateState extends State<AuthGate> {
     if (_bootstrapping) {
       return const _AuthLoading();
     }
-    return _session == null ? const WelcomeScreen() : const RegionSelectionScreen();
+    if (_session != null) return const RegionSelectionScreen();
+    if (_showWelcome) {
+      return WelcomeScreen(
+        onProceed: () => setState(() => _showWelcome = false),
+      );
+    }
+    return const LoginScreen();
   }
 }
 
@@ -107,7 +115,7 @@ class _AuthLoading extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'Consola del Tesoro',
+                'Búsqueda del Tesoro',
                 style: TextStyle(
                   color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                   fontSize: 18,

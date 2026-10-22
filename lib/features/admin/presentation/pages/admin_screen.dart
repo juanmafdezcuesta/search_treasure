@@ -370,6 +370,7 @@ class _ValidatedTile extends StatelessWidget {
     final riddleText  = clue['riddle_text']  as String? ?? '';
     final validatedAt = row['validated_at']  as String?;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: ListTile(
@@ -389,8 +390,8 @@ class _ValidatedTile extends StatelessWidget {
           children: [
             Expanded(
               child: Text(username,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
+                  style: TextStyle(
+                      color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                       fontWeight: FontWeight.w700)),
             ),
             Container(

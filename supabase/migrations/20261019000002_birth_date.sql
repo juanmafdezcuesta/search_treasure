@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro — Control de edad (RGPD, edad mínima 16)
+-- Búsqueda del Tesoro — Control de edad (RGPD, edad mínima 16)
 -- =============================================================
 
 -- ─── 1. Columna birth_date en profiles ────────────────────────────────────

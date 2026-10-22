@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro — Fix get_public_trophies
+-- Búsqueda del Tesoro — Fix get_public_trophies
 -- =============================================================
 -- Problema: la versión anterior filtraba con `validated_at IS NOT NULL`,
 -- lo que excluía entradas aprobadas con la versión original de

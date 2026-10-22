@@ -1,5 +1,5 @@
 -- =============================================================
--- Consola del Tesoro – Auto: activar siguiente pista al validar
+-- Búsqueda del Tesoro – Auto: activar siguiente pista al validar
 -- =============================================================
 -- Ajusta approve_validation para que:
 --  - al aprobar una pista, inserte automáticamente la siguiente (pending)
