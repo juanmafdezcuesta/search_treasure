@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:consola_tesoro/core/models/hunt.dart';
+import 'package:consola_tesoro/core/models/hunt_leaderboard_entry.dart';
 
 /// Modelo ligero con los datos de una pista que la UI necesita mostrar.
 /// NO incluye `location` (protegido en servidor por SECURITY DEFINER).
@@ -259,6 +260,16 @@ class HuntDatasource {
       'p_clue_id': clueId,
     });
     return Map<String, dynamic>.from(result as Map);
+  }
+
+  // ── Clasificación de completers de un hunt (multi-ganador) ──────────────────
+  Future<List<HuntLeaderboardEntry>> getHuntLeaderboard(String huntId) async {
+    final rows = await _client.rpc('get_hunt_leaderboard', params: {
+      'p_hunt_id': huntId,
+    }) as List<dynamic>;
+    return rows
+        .map((r) => HuntLeaderboardEntry.fromMap(r as Map<String, dynamic>))
+        .toList();
   }
 
   // ── Validaciones ya aprobadas (para la vista de ganadores en AdminScreen) ─

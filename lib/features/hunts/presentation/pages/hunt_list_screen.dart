@@ -8,6 +8,7 @@ import 'package:consola_tesoro/core/models/hunt.dart';
 import 'package:consola_tesoro/core/theme/app_theme.dart';
 import 'package:consola_tesoro/data/datasources/supabase/hunt_datasource.dart';
 import 'package:consola_tesoro/features/hunts/presentation/widgets/hunt_countdown_timer.dart';
+import 'package:consola_tesoro/features/hunts/presentation/pages/leaderboard_screen.dart';
 import 'package:consola_tesoro/features/map/presentation/pages/map_screen.dart';
 
 class HuntListScreen extends StatefulWidget {
@@ -208,6 +209,15 @@ class _HuntListScreenState extends State<HuntListScreen> {
             _HuntCard(
               hunt: _activeHunts[i],
               onTap: () => _showExpeditionRules(_activeHunts[i]),
+              onRankingTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LeaderboardScreen(
+                    huntId:    _activeHunts[i].id,
+                    huntTitle: _activeHunts[i].title,
+                  ),
+                ),
+              ),
             ).animate()
                 .fadeIn(delay: (50 * i).ms, duration: 220.ms)
                 .slideY(begin: 0.06),
@@ -271,7 +281,8 @@ class _SectionLabel extends StatelessWidget {
 class _HuntCard extends StatefulWidget {
   final Hunt hunt;
   final VoidCallback onTap;
-  const _HuntCard({required this.hunt, required this.onTap});
+  final VoidCallback? onRankingTap;
+  const _HuntCard({required this.hunt, required this.onTap, this.onRankingTap});
 
   @override
   State<_HuntCard> createState() => _HuntCardState();
@@ -475,6 +486,26 @@ class _HuntCardState extends State<_HuntCard> {
                                               const Icon(Icons.lock_rounded,
                                                   color: AppColors.textSecondary, size: 16),
                                             ],
+                                            const Spacer(),
+                                            GestureDetector(
+                                              onTap: widget.onRankingTap,
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.leaderboard_rounded,
+                                                      color: AppColors.textSecondary, size: 14),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Ranking',
+                                                    style: TextStyle(
+                                                      color: AppColors.textSecondary,
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ],
                                         ),
                                         if (_hasTemporal) ...[

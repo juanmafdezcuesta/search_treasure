@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Web (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "args": ["--dart-define-from-file=assets/env.json"]
+    },
+    {
+      "name": "Android (debug)",
+      "request": "launch",
+      "type": "dart",
+      "args": ["--dart-define-from-file=assets/env.json"]
+    },
+    {
+      "name": "Web (release)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": ["--dart-define-from-file=assets/env.json"]
+    }
+  ]
+}
